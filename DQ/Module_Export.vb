@@ -299,17 +299,35 @@ Module Module_Export
 
         'Dim file As New FileStream(Path.Combine(System.Windows.Forms.Application.StartupPath, workbookname & ".xls"), FileMode.Create)
         'Dim file As New FileStream(Path.Combine("d:\", workbookname & ".xls"), FileMode.OpenOrCreate)
-        Try
-            Dim file As New FileStream(workbookname, FileMode.OpenOrCreate)
-            wb.Write(file)
+        'Try
+        '    Dim file As New FileStream(workbookname, FileMode.OpenOrCreate)
+        '    wb.Write(file)
 
-            file.Close()
+        '    file.Close()
+        '    Return True
+        'Catch
+        '    MessageBox.Show("文件" & workbookname & "被占用,保存文件失败！", "警告", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        '    Return False
+        'End Try
+        ' ===== 安全保存 =====
+        Try
+            ' 1) 确保目录存在
+            Dim outDir As String = Path.GetDirectoryName(workbookname)
+            If Not String.IsNullOrEmpty(outDir) AndAlso Not Directory.Exists(outDir) Then
+                Directory.CreateDirectory(outDir)
+            End If
+
+            ' 2) 使用 Create 覆盖写入，Using 确保释放句柄
+            Using file As New FileStream(workbookname, FileMode.Create, FileAccess.Write, FileShare.None)
+                wb.Write(file)
+            End Using
+
             Return True
-        Catch
-            MessageBox.Show("文件" & workbookname & "被占用,保存文件失败！", "警告", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        Catch ex As Exception
+            ' 显示真实异常，便于定位错误根源
+            MessageBox.Show($"保存文件失败: {workbookname}{vbCrLf}{ex.GetType().Name}: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Return False
         End Try
-
 
     End Function
 
