@@ -341,7 +341,7 @@ Public Class Form2
             ' 先做完整校验，给出具体到字段名的错误提示
             Dim foundationHeight = ParseNonNegative("基础埋深", txt_foundation_height.Text)
             Dim stepCal = ParseNonNegative("插入剖分线的计算步长", txt_step_cal.Text)
-            Dim minDqLength = ParseNonNegative("阈值1 插入剖分线距已有线距离", txt_min_dq_length.Text)
+            Dim minDqLength = ParseNonNegative("阈值1 两剖分线最小距离", txt_min_dq_length.Text)
             Dim diffHeightBase = ParseNonNegative("阈值2 挡墙基底高差", txt_difference_height_base.Text)
 
             ' 校验通过，写入配置
