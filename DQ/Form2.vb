@@ -294,6 +294,91 @@ Public Class Form2
     End Sub
 
     Private Sub Form2_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' 读取 JSON 并绑定到界面的控件上
+        Dim config As DqConfig = DqConfig.LoadConfig()
+        txt_foundation_height.Text = config.dq_foundation_height.ToString()
+        txt_step_cal.Text = config.step_cal.ToString()
+        txt_min_dq_length.Text = config.min_dq_length.ToString()
+        txt_difference_height_base.Text = config.dq_difference_height_base.ToString()
 
+        ' 同步到模块级变量
+        dq_‌foundation_height = config.dq_foundation_height
+        step_cal = config.step_cal
+        min_dq_length = config.min_dq_length
+        dq_difference_height_base = config.dq_difference_height_base
     End Sub
+
+    ' 4 个数值输入框共用的 KeyPress 事件：
+    '   只允许 数字(0-9) / 小数点(.) / 退格，其它字符一律拦截
+    Private Sub NumericTextBox_KeyPress(sender As Object, e As KeyPressEventArgs) Handles _
+        txt_foundation_height.KeyPress,
+        txt_step_cal.KeyPress,
+        txt_min_dq_length.KeyPress,
+        txt_difference_height_base.KeyPress
+
+        ' 数字：通过
+        If Char.IsDigit(e.KeyChar) Then Exit Sub
+
+        ' 小数点：每个输入框只允许出现一次
+        If e.KeyChar = "."c Then
+            Dim tb = DirectCast(sender, TextBox)
+            If tb.Text.Contains(".") Then
+                e.Handled = True
+            End If
+            Exit Sub
+        End If
+
+        ' 退格键：通过
+        If e.KeyChar = ControlChars.Back Then Exit Sub
+
+        ' 其它字符（字母、空格、负号、其它符号等）：全部拦截
+        e.Handled = True
+    End Sub
+
+    Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+        ' 保存按钮：将界面参数写回 JSON，并同步到模块级变量
+        Try
+            ' 先做完整校验，给出具体到字段名的错误提示
+            Dim foundationHeight = ParseNonNegative("基础埋深", txt_foundation_height.Text)
+            Dim stepCal = ParseNonNegative("插入剖分线的计算步长", txt_step_cal.Text)
+            Dim minDqLength = ParseNonNegative("阈值1 插入剖分线距已有线距离", txt_min_dq_length.Text)
+            Dim diffHeightBase = ParseNonNegative("阈值2 挡墙基底高差", txt_difference_height_base.Text)
+
+            ' 校验通过，写入配置
+            Dim config As New DqConfig()
+            config.dq_foundation_height = foundationHeight
+            config.step_cal = stepCal
+            config.min_dq_length = minDqLength
+            config.dq_difference_height_base = diffHeightBase
+
+            ' 写入 JSON 文件
+            DqConfig.SaveConfig(config)
+
+            ' 同步到模块级变量（保证后续绘图逻辑立即生效）
+            dq_‌foundation_height = config.dq_foundation_height
+            step_cal = config.step_cal
+            min_dq_length = config.min_dq_length
+            dq_difference_height_base = config.dq_difference_height_base
+
+            MessageBox.Show("参数已保存。", "保存成功", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        Catch ex As Exception
+            MessageBox.Show("保存失败：" & ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
+
+    ' 解析一个文本框为 Double；为空/非数值/<0 时抛出 ArgumentException，并附字段名
+    Private Function ParseNonNegative(label As String, text As String) As Double
+        Dim trimmed = If(text, "").Trim()
+        If String.IsNullOrEmpty(trimmed) Then
+            Throw New ArgumentException($"【{label}】不能为空")
+        End If
+        Dim v As Double
+        If Not Double.TryParse(trimmed, v) Then
+            Throw New ArgumentException($"【{label}】不是合法的数值（输入：'{trimmed}'）")
+        End If
+        If v < 0 Then
+            Throw New ArgumentException($"【{label}】必须大于等于 0（当前值：{v}）")
+        End If
+        Return v
+    End Function
 End Class

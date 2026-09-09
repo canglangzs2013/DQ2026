@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <PackageReference Include="netDxf" Version="2023.11.10" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="NPOI" Version="2.7.6" />
   </ItemGroup>
 
