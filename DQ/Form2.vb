@@ -22,7 +22,7 @@ Public Class Form2
         dtTemplate.Columns.Add("min_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
 
         dtTemplate.Columns.Add("dqdy2", Type.GetType("System.Double")) '顶
-        dtTemplate.Columns.Add("dqdh_pre", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
+        dtTemplate.Columns.Add("h_plus_f", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
         dtTemplate.Columns.Add("dqdh", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
         'dtTemplate.Columns.Add("finnal_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
         dtTemplate.Columns.Add("dqdy1", Type.GetType("System.Double")) '底
@@ -44,7 +44,8 @@ Public Class Form2
         dtTemplate.Columns（"dqdy1"）.Caption = "挡墙设计底高程dqdy1"
         dtTemplate.Columns（"dqdy2"）.Caption = "挡墙设计顶高程dqdy2"
         dtTemplate.Columns（"min_pfxdqdy1_group"）.Caption = "分组内剖分线最低值min_pfxdqdy1_group"
-        dtTemplate.Columns（"dqdh_pre"）.Caption = "挡墙高度计算值dqdh_pre"
+        'dtTemplate.Columns（"dqdh_pre"）.Caption = "挡墙高度计算值dqdh_pre"
+        dtTemplate.Columns（"h_plus_f"）.Caption = "高差+基础埋深"
         dtTemplate.Columns（"group"）.Caption = "挡墙分组group"
         dtTemplate.Columns（"pd"）.Caption = "挡墙基底纵坡"
         dtTemplate.Columns（"memo"）.Caption = "备注"
@@ -94,6 +95,7 @@ Public Class Form2
                 Dim maxx As Double = datatable_T.Rows(datatable_T.Rows.Count - 1)("x")
                 Dim x_current As Double = minx
                 Do While x_current < maxx
+                    'MessageBox.Show(x_current & "ppp")
                     If x_current > minx Then '第一个点的信息上一步已经录入了
                         Dim boolean_effective As Boolean = True
                         ' 检查当前 x_current 是否与已有的控制点太近
@@ -113,6 +115,8 @@ Public Class Form2
                             dtTemplate.Rows.Add(dr2)
                         End If
                     End If
+
+                    'MessageBox.Show(step_cal)
                     x_current = x_current + step_cal
                 Loop
 
@@ -146,11 +150,12 @@ Public Class Form2
                     dtTemplate.Rows(m)("dqdy2") = dtTemplate.Rows(m)("y2") '挡墙设计顶高程，因为是填方边坡，所以是固定值，
 
 
-                    Dim h_temp As Double = dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("dq_‌foundation_height")
+                    Dim h_temp As Double = Math.Ceiling(dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("dq_‌foundation_height"))
+
+                    dtTemplate.Rows(m)("pfxdqdh") = h_temp '该条分线处挡墙的高度的最小值，(地形高差+基础深度)，将来挡墙高不能比这个小
                     dtTemplate.Rows(m)("pfxdqdy1") = dtTemplate.Rows(m)("y2") - h_temp
                     dtTemplate.Rows(m)("pfxdqdy2") = dtTemplate.Rows(m)("y2")
-                    dtTemplate.Rows(m)("pfxdqdh") = h_temp '该条分线处挡墙的高度的最小值，(地形高差+基础深度)，将来挡墙高不能比这个小
-
+                    dtTemplate.Rows(m)("h_plus_f") = dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("dq_‌foundation_height")
                     If m <> dtTemplate.Rows.Count - 1 Then
                         dtTemplate.Rows(m)("L") = dtTemplate.Rows(m + 1)("x") - dtTemplate.Rows(m)("x")
                         dtTemplate.Rows(m)("pd") = （dtTemplate.Rows(m + 1)("y1") - dtTemplate.Rows(m)("y1")） / dtTemplate.Rows(m)("L")
@@ -160,8 +165,10 @@ Public Class Form2
                     End If
                 Next
 
-                '第三步：准备dt（合并相同高度的相邻挡墙） 
+                '第三步：准备dt（合并相同高度的相邻挡墙）
+                '改为按 pfxdqdh（向上取整后）分组，保证不同挡墙高度(1m/2m/3m)绝不混在同一组
                 dtTemplate = GroupByPfxdqdy1RangeFixed(dtTemplate, 1).Copy
+
 
                 '根据上一步的分组结果，合并分组，（其实就是新建datatable，并取各剖分线第一组）并更新相关数据
                 Dim dt = dtTemplate.Clone
