@@ -4,7 +4,7 @@ Imports netDxf.Tables
 Imports NPOI.SS.Formula.Functions
 
 Module Module_draw4
-    Public Sub Createdqdxf4(ByVal strfilename As String, ByVal dt As DataTable， ByVal datatable_B As DataTable， ByVal datatable_T As DataTable)
+    Public Sub Createdqdxf4(ByVal strfilename As String, ByVal dt As DataTable， ByVal datatable_B As DataTable， ByVal datatable_T As DataTable， ByVal dtTemplate As DataTable)
         'Dim doc As New DxfDocument(DxfVersion.AutoCad2018)
         Dim dt_temp As DataTable = dt.Copy
         Dim doc As New DxfDocument()
@@ -24,6 +24,7 @@ Module Module_draw4
             Dim x As Double = dt_temp.Rows(i)("x")
             Dim dqdy1 As Double = dt_temp.Rows(i)("dqdy1")
             Dim dqdy2 As Double = dt_temp.Rows(i)("dqdy2")
+            Dim dq_‌foundation_height As Double = dt_temp.Rows(i)("dq_‌foundation_height")
             Dim x_next As Double
             Dim dqdy2_next As Double
             Dim dqdy1_next As Double
@@ -85,6 +86,18 @@ Module Module_draw4
             polyline3.SetConstantWidth(0.05)
             doc.Entities.Add(polyline3)
 
+
+            '以下绘制最基础线
+            'MessageBox.Show(dq_‌foundation_height)
+            Dim vertexes_4 As New List(Of Vector2) From {
+  New Vector2(x, dqdy1 + dq_‌foundation_height),
+  New Vector2(x_next, dqdy1 + dq_‌foundation_height)'我他妈也不知道怎么回事
+   }
+
+            Dim polyline4 As New netDxf.Entities.Polyline2D(vertexes_4)
+            polyline4.Layer = layer
+            polyline4.SetConstantWidth(0.05)
+            doc.Entities.Add(polyline4)
             'Call DrawElevations(doc, (x + x_next) * 0.5, dqdy1, dqdy1) '貌似底高程
             'Call DrawElevations(doc, x, dqdy2, dqdy2) '貌似顶高程
             'Call DrawElevations(doc, (x + x_next) * 0.5, (dqdy1 + dqdy2) * 0.5, dtTemplate.Rows(i)("group")) '挡墙编号
@@ -94,6 +107,20 @@ Module Module_draw4
             Call DrawElevations(doc, x, dqdy2, dqdy2.ToString()) '貌似顶高程
             Call Drawtext(doc, (x + x_next) * 0.5, (dqdy1 + dqdy2) * 0.5, dt_temp.Rows(i)("group") & "#") '挡墙编号
             'num_display.ToString("0.00")
+        Next
+
+        For n = 0 To dtTemplate.Rows.Count - 1
+            '以下绘制剖分线
+            Dim vertexes_p As New List(Of Vector2) From {
+  New Vector2(dtTemplate.Rows(n)("x"), dtTemplate.Rows(n)("dqdy1")),
+  New Vector2(dtTemplate.Rows(n)("x"), dtTemplate.Rows(n)("dqdy2"))
+   }
+
+            Dim polyline_p As New netDxf.Entities.Polyline2D(vertexes_p)
+            polyline_p.Layer = layer
+            polyline_p.SetConstantWidth(0.01)
+            doc.Entities.Add(polyline_p)
+            Call Drawtext(doc, dtTemplate.Rows(n)("x"), (dtTemplate.Rows(n)("dqdy2") + dtTemplate.Rows(n)("dqdy1")) * 0.5, dtTemplate.Rows(n)("ID")) '挡墙编号
         Next
 
         For j = 0 To dt_temp.Rows.Count - 1
@@ -112,6 +139,8 @@ Module Module_draw4
         For m = 0 To dt_temp.Rows.Count - 1
             Dim yCoords() As Double = {dt_temp.Rows(m)("dqdy1"), dt_temp.Rows(m)("dqdy2")}
             Call CreateContinueDimensionsWithLoop_y(doc, yCoords, dt_temp.Rows(m)("x"), 1)
+            'Call Drawtext(doc, (x + x_next) * 0.5, (dqdy1 + dqdy2) * 0.5, dt_temp.Rows(i)("group") & "#") '挡墙编号
+            ''        'num_display.ToString("0.00")
         Next
 
         Call DrawPolylineFromDataTable(doc, datatable_T, "顶部")

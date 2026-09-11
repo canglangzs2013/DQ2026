@@ -34,29 +34,21 @@
 }
 
     ''' <summary>
-    ''' 输入h，遍历dq_Map中Key>h并且按Key升序，取第一个向上匹配得到的dq_Map第一列Key
+    ''' 输入h，在dq_Map中找到第一个 Key>h 且满足 h+foundation_height<=Key 的Key
     ''' </summary>
     ''' <param name="h">输入值</param>
-    ''' <returns>Double，向上取整匹配到的第一列key</returns>
+    ''' <returns>第一个满足条件的Key；若无满足条件则返回最大Key</returns>
     Public Function GetFirstCeilingKey(h As Double) As Double
-        ' 筛选Key>h，并且按Key从小到大排序
-        Dim rows = dq_Map.Where(Function(kvp) kvp.Key > h).OrderBy(Function(kvp) kvp.Key)
+        For Each kvp In dq_Map  ' Dictionary 插入顺序即升序，无需再 OrderBy
+            If kvp.Key <= h Then Continue For
 
-        For Each kvp In rows
-            Dim calcVal = h + kvp.Value.foundation_height
-            ' 向上查找 >= calcVal 的最小key
-            Dim candidates = dq_Map.Keys.Where(Function(k) k >= calcVal - 0.000000001)
-            Dim upKey As Double
-            If candidates.Any() Then
-                upKey = candidates.Min()
-            Else
-                upKey = dq_Map.Keys.Max()
+            ' 核心判断：h + 该条目的 foundation_height <= 该条目的 Key
+            If h + kvp.Value.foundation_height <= kvp.Key + 0.000000001 Then
+                Return kvp.Key
             End If
-            ' 找到第一个，直接返回
-            Return upKey
         Next
 
-        ' 没有任何Key>h的兜底：返回最大key
+        ' 没有任何 Key>h 满足条件，兜底返回最大 Key
         Return dq_Map.Keys.Max()
     End Function
 

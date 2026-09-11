@@ -1,11 +1,26 @@
-﻿Module Module_group_new
+﻿Imports System.Data
+
+Module Module_group_new
+
     ''' <summary>
-    ''' 组内pfxdqdy1极差阈值顺序贪心分组；ID含"*"强制新开一组；
-    ''' 组内统一记录 min/max 到 min_y1_group / max_y1_group
+    ''' 改进的按 pfxdqdy1 分组：
+    ''' 1) 先按阈值 threshold 做顺序贪心分组（ID 含 "*" 强制新组）
+    ''' 2) 在每次准备结束当前组时，若当前组宽度 < minSegmentLength，则继续向后吸收下一行（临时忽略高度阈值），
+    '''    直到组宽 >= minSegmentLength 或遇到受保护行（ID 包含 "*"）或到数据末尾。
+    ''' 3) 吸收完成后计算每组的 min_pfxdqdy1_group、dqdy1、dqdh，并把 group 压缩为 0,1,2...
     ''' </summary>
-    Function GroupByPfxdqdy1RangeFixed(ByVal dtTemplate As DataTable, Optional threshold As Double = 1) As DataTable
+    Public Function GroupByPfxdqdy1RangeFixed(ByVal dtTemplate As DataTable, Optional threshold As Double = 1, Optional minSegmentLength As Double = 2) As DataTable
         If dtTemplate Is Nothing OrElse dtTemplate.Rows.Count = 0 Then
             Return Nothing
+        End If
+
+        ' 获得默认最小段长
+        If minSegmentLength <= 0 Then
+            Try
+                minSegmentLength = Module_del.min_segment_length
+            Catch
+                minSegmentLength = 0
+            End Try
         End If
 
         Dim dtOut As DataTable = dtTemplate.Clone()
@@ -18,71 +33,143 @@
             dtOut.ImportRow(r)
         Next
 
-        '===== 阶段1：仅划分group编号 =====
+        ' 辅助：安全取 x 与 pfxdqdy1
+        Dim SafeDouble = Function(obj As Object) As Double
+                             If obj Is Nothing OrElse IsDBNull(obj) Then Return Double.NaN
+                             Dim d As Double
+                             If Double.TryParse(obj.ToString(), d) Then Return d
+                             Return Double.NaN
+                         End Function
+
+        Dim rowCount As Integer = dtOut.Rows.Count
+
+        ' ===== 阶段1：顺序贪心分组 + 向后吸收保证最小宽度 =====
         Dim groupId As Integer = 0
-        Dim curGroupMin As Double
-        Dim curGroupMax As Double
+        Dim startIdx As Integer = 0
+        Dim curMin As Double = SafeDouble(dtOut.Rows(0)("pfxdqdy1"))
+        Dim curMax As Double = curMin
+        dtOut.Rows(0)("group") = groupId
 
-        Dim r0 As DataRow = dtOut.Rows(0)
-        Dim v0 As Double = CDbl(r0("pfxdqdy1"))
-        curGroupMin = v0
-        curGroupMax = v0
-        r0("group") = groupId
-
-        For i As Integer = 1 To dtOut.Rows.Count - 1
-            Dim rowCur As DataRow = dtOut.Rows(i)
-            Dim valCur As Double = CDbl(rowCur("pfxdqdy1"))
-
-            Dim tempMin As Double = Math.Min(curGroupMin, valCur)
-            Dim tempMax As Double = Math.Max(curGroupMax, valCur)
-
-            'ID含"*"强制新开一组
-            Dim mustSplit As Boolean = rowCur("ID").ToString().Contains("*")
-
-            If mustSplit OrElse (tempMax - tempMin) >= threshold Then
-                groupId += 1
-                curGroupMin = valCur
-                curGroupMax = valCur
-            Else
-                curGroupMin = tempMin
-                curGroupMax = tempMax
+        Dim i As Integer = 1
+        While i < rowCount
+            Dim valCur As Double = SafeDouble(dtOut.Rows(i)("pfxdqdy1"))
+            Dim mustSplit As Boolean = False
+            If Not IsDBNull(dtOut.Rows(i)("ID")) Then
+                If dtOut.Rows(i)("ID").ToString().Contains("*") Then mustSplit = True
             End If
-            rowCur("group") = groupId
-        Next
 
-        '===== 阶段2：按group聚合最小值与最大值 =====
+            Dim tempMin As Double = Math.Min(curMin, valCur)
+            Dim tempMax As Double = Math.Max(curMax, valCur)
+
+            ' 默认按阈值决定是否分组
+            Dim shouldSplitByHeight As Boolean = (tempMax - tempMin) >= threshold '差值只要达到阈值就拆千万不能少了等号
+
+
+            If mustSplit OrElse shouldSplitByHeight Then
+                ' 在真正拆组之前，检查当前组宽度是否满足 minSegmentLength
+                Dim xStart = SafeDouble(dtOut.Rows(startIdx)("x"))
+                Dim xEnd = SafeDouble(dtOut.Rows(i - 1)("x"))
+                Dim width As Double = If(Double.IsNaN(xStart) OrElse Double.IsNaN(xEnd), 0.0, xEnd - xStart)
+
+                ' 若宽度不足，则尝试向后吸收（忽略高度阈值），直到满足或遇到受保护点或到末尾
+                If width < minSegmentLength Then
+                    Dim canAbsorb As Boolean = True
+                    Dim j As Integer = i
+                    ''While j < rowCount AndAlso width < minSegmentLength AndAlso canAbsorb
+                    ''    遇到受保护点则停止吸收
+                    ''    If Not IsDBNull(dtOut.Rows(j)("ID")) AndAlso dtOut.Rows(j)("ID").ToString().Contains("*") Then
+                    ''        canAbsorb = False
+                    ''        Exit While
+                    ''    End If
+                    ''    吸收第 j 行到当前组（暂不改 group 字段， 先扩展范围）
+                    ''    curMin = Math.Min(curMin, SafeDouble(dtOut.Rows(j)("pfxdqdy1")))
+                    ''    curMax = Math.Max(curMax, SafeDouble(dtOut.Rows(j)("pfxdqdy1")))
+                    ''    xEnd = SafeDouble(dtOut.Rows(j)("x"))
+                    ''    width = If(Double.IsNaN(xStart) OrElse Double.IsNaN(xEnd), 0.0, xEnd - xStart)
+                    ''    j += 1
+                    ''End While
+                    While j < rowCount AndAlso width < minSegmentLength AndAlso canAbsorb
+                        If Not IsDBNull(dtOut.Rows(j)("ID")) AndAlso dtOut.Rows(j)("ID").ToString().Contains("*") Then
+                            canAbsorb = False
+                            Exit While
+                        End If
+                        curMin = Math.Min(curMin, SafeDouble(dtOut.Rows(j)("pfxdqdy1")))
+                        curMax = Math.Max(curMax, SafeDouble(dtOut.Rows(j)("pfxdqdy1")))
+                        xEnd = SafeDouble(dtOut.Rows(j)("x"))
+                        width = If(Double.IsNaN(xStart) OrElse Double.IsNaN(xEnd), 0.0, xEnd - xStart)
+                        j += 1
+                        If width >= minSegmentLength Then Exit While          ' ← 新增这一行
+                    End While
+
+
+
+
+                    If width >= minSegmentLength Then
+                        ' 吸收成功：把 i..j-1 行全部加入当前组
+                        For k As Integer = i To j - 1
+                            dtOut.Rows(k)("group") = groupId
+                        Next
+                        ' 继续处理下一个行，i = j
+                        i = j
+                        ' 更新 curMin/curMax 已在循环中完成（但确保 curMin/curMax 包含已吸收）
+                        curMin = Math.Min(curMin, tempMin)
+                        curMax = Math.Max(curMax, tempMax)
+                        Continue While
+                    Else
+                        ' 吸收失败（遇到受保护点或到尾也未满足），则按原计划拆组（不强制合并）
+                        ' proceed to create new group below
+                    End If
+                End If
+
+                ' 执行真正的拆组：当前组结束，下一行 i 为新组起点
+                groupId += 1
+                startIdx = i
+                curMin = valCur
+                curMax = valCur
+                dtOut.Rows(i)("group") = groupId
+                i += 1
+            Else
+                ' 不拆组：把当前行加入当前组
+                dtOut.Rows(i)("group") = groupId
+                curMin = tempMin
+                curMax = tempMax
+                i += 1
+            End If
+        End While
+
+        ' ===== 阶段2：按 group 聚合最小/最大 pfx 并回写 dqdy1/dqdh =====
+        Dim distinctGroups = dtOut.AsEnumerable().Select(Function(r) CInt(r("group"))).Distinct().OrderBy(Function(x) x).ToList()
         Dim dictGroupMin As New Dictionary(Of Integer, Double)
         Dim dictGroupMax As New Dictionary(Of Integer, Double)
-        Dim distinctGroups = dtOut.AsEnumerable().Select(Function(r) CInt(r("group"))).Distinct().ToList()
 
         For Each gNo As Integer In distinctGroups
             Dim subRows = dtOut.AsEnumerable().Where(Function(r) CInt(r("group")) = gNo)
-            dictGroupMin(gNo) = subRows.Min(Function(r) CDbl(r("pfxdqdy1")))
-            dictGroupMax(gNo) = subRows.Max(Function(r) CDbl(r("pfxdqdy1")))
+            If subRows.Any() Then
+                dictGroupMin(gNo) = subRows.Min(Function(r) CDbl(r("pfxdqdy1")))
+                dictGroupMax(gNo) = subRows.Max(Function(r) CDbl(r("pfxdqdy1")))
+            End If
         Next
 
-        '===== 阶段3：回写统一最小值/最大值 + ID追加"min" =====
         For Each row As DataRow In dtOut.Rows
             Dim g As Integer = CInt(row("group"))
-            row("min_pfxdqdy1_group") = dictGroupMin(g)
-
-
-            If CDbl(row("pfxdqdy1")) = dictGroupMin(g) Then
-                Dim id As String = row("ID").ToString()
-                If Not id.EndsWith("min") Then
-                    row("ID") = id & "min"
-                    'row("dqdh_pre") = row("dqdy2") - row("min_pfxdqdy1_group")
-                    row("min_y1_group") = dictGroupMin(g)      '【新增】组内pfxdqdy1最小值
-                    row("max_y1_group") = dictGroupMax(g)      '【新增】组内pfxdqdy1最大值
+            If dictGroupMin.ContainsKey(g) Then
+                row("min_pfxdqdy1_group") = dictGroupMin(g)
+                row("min_y1_group") = dictGroupMin(g)
+                row("max_y1_group") = dictGroupMax(g)
+                If CDbl(row("pfxdqdy1")) = dictGroupMin(g) Then
+                    Dim id As String = If(IsDBNull(row("ID")), String.Empty, row("ID").ToString())
+                    If Not id.EndsWith("min") Then
+                        row("ID") = id & "min"
+                    End If
                 End If
             End If
         Next
 
-        '===== 阶段5：计算并回写 dqdh / dqdy1 =====
+        ' 统一组内 dqdh / dqdy1：用组的 min_pfxdqdy1_group 与行的 dqdy2 计算 dqdh（一组统一高度）
         For Each gNo As Integer In distinctGroups
             Dim firstMinRow As DataRow = dtOut.AsEnumerable() _
-            .Where(Function(r) CInt(r("group")) = gNo AndAlso r("ID").ToString().EndsWith("min")) _
-            .FirstOrDefault()
+                .Where(Function(r) CInt(r("group")) = gNo AndAlso Not IsDBNull(r("min_pfxdqdy1_group"))) _
+                .FirstOrDefault()
 
             If firstMinRow IsNot Nothing Then
                 Dim dqdy2Val As Double
@@ -93,128 +180,106 @@
                 End If
 
                 Dim minG As Double = CDbl(firstMinRow("min_pfxdqdy1_group"))
-                'Dim finalVal As Double = Math.Ceiling(dqdy2Val - minG)
-                Dim finalVal As Double = dqdy2Val - minG '因为分组前pfxdqdy1已经考虑了向上取整，所以这里不再需要 ceiling，直接用原始差值即可
-                'Dim finalVal As Double = dqdy2Val - minG
+                Dim finalVal As Double = dqdy2Val - minG
+                'Dim finalVal As Double = GetFirstCeilingKey(dqdy2Val - minG)'不可犯错
+
+
                 For Each row As DataRow In dtOut.AsEnumerable().Where(Function(r) CInt(r("group")) = gNo)
                     row("dqdh") = finalVal
                     row("dqdy1") = row("dqdy2") - row("dqdh")
+                    row("dq_‌foundation_height") = dq_Map(finalVal).foundation_height
+                    row("h_plus_f") = dq_Map(finalVal).foundation_height + row("h")
                 Next
             End If
+        Next
+
+        ' 最后把 group 编号压缩为 0,1,2...
+        Dim map As New Dictionary(Of Integer, Integer)
+        Dim nextId As Integer = 0
+        For idx As Integer = 0 To dtOut.Rows.Count - 1
+            Dim g = CInt(dtOut.Rows(idx)("group"))
+            If Not map.ContainsKey(g) Then
+                map.Add(g, nextId)
+                nextId += 1
+            End If
+            dtOut.Rows(idx)("group") = map(g)
         Next
 
         Return dtOut
     End Function
 
-    '''' <summary>
-    '''' 与 GroupByPfxdqdy1RangeFixed 类似，但分组基准列改为 pfxdqdh：
-    ''''   1. 分组前对 pfxdqdh 向上取整为整数，保证不同挡墙高度(1m/2m/3m)绝不混在同一组
-    ''''   2. 比较运算符用 ">=" 而不是 ">"，避免 ceiling 差恰为 1 的临界塌陷
-    ''''   3. 输出列名加 dh_ 前缀以示区别（与原函数并存不冲突）
-    '''' 适用场景：希望"挡墙高度 1m 和 2m 和 3m 必须分到不同组"的工程量统计
-    '''' </summary>
-    'Function GroupByPfxdqdhCeiling(ByVal dtTemplate As DataTable, Optional threshold As Double = 1.0) As DataTable
-    '    If dtTemplate Is Nothing OrElse dtTemplate.Rows.Count = 0 Then
-    '        Return Nothing
-    '    End If
+    ' 新增：合并相邻且完全相同的组（按 dqdh、dqdy1、dqdy2 判断）
+    ''' <summary>
+    ''' 把 dt 中相邻的两个组合并，当且仅当这两个组的 dqdh、dqdy1、dqdy2 三个值都相等（允许浮点微小误差）。
+    ''' 不修改原分组函数；就地修改并返回同一个 DataTable 引用。
+    ''' 参数：
+    '''   dt - 已经分组并按 x 升序的 DataTable（必须包含列 "group","dqdh","dqdy1","dqdy2"）
+    '''   tolerance - 比较浮点相等时的容差，默认为 1e-9（可设为 0 强制精确相等）
+    ''' </summary>
+    Public Function MergeAdjacentEqualGroups(ByVal dt As DataTable, Optional ByVal tolerance As Double = 0.000000001, Optional ByVal renumberGroups As Boolean = True) As DataTable
+        ' 仅修改此函数：当且仅当相邻两行的 dqdh、dqdy1、dqdy2 在容差内都相等，则删除第二行（后一组）
+        If dt Is Nothing OrElse dt.Rows.Count <= 1 Then Return dt
 
-    '    Dim dtOut As DataTable = dtTemplate.Clone()
-    '    If Not dtOut.Columns.Contains("group") Then dtOut.Columns.Add("group", GetType(Integer))
-    '    If Not dtOut.Columns.Contains("min_pfxdqdh_group") Then dtOut.Columns.Add("min_pfxdqdh_group", GetType(Double))
-    '    If Not dtOut.Columns.Contains("min_dh_group") Then dtOut.Columns.Add("min_dh_group", GetType(Double))
-    '    If Not dtOut.Columns.Contains("max_dh_group") Then dtOut.Columns.Add("max_dh_group", GetType(Double))
+        ' 必要列检查
+        If Not dt.Columns.Contains("dqdh") OrElse Not dt.Columns.Contains("dqdy1") OrElse Not dt.Columns.Contains("dqdy2") Then
+            Return dt
+        End If
 
-    '    For Each r As DataRow In dtTemplate.Rows
-    '        dtOut.ImportRow(r)
-    '    Next
+        ' 安全取 double（NaN 表示不可比较）
+        Dim SafeDouble = Function(obj As Object) As Double
+                             If obj Is Nothing OrElse IsDBNull(obj) Then Return Double.NaN
+                             Dim d As Double
+                             If Double.TryParse(obj.ToString(), d) Then Return d
+                             Return Double.NaN
+                         End Function
 
-    '    '===== 阶段1：仅划分group编号 =====
-    '    ' 分组基准为 Math.Ceiling(pfxdqdh)，保证整数差>=1时必开新组
-    '    Dim groupId As Integer = 0
-    '    Dim curGroupMin As Double
-    '    Dim curGroupMax As Double
+        Dim i As Integer = 0
+        While i <= dt.Rows.Count - 2
+            Dim r1 As DataRow = dt.Rows(i)
+            Dim r2 As DataRow = dt.Rows(i + 1)
 
-    '    Dim r0 As DataRow = dtOut.Rows(0)
-    '    Dim v0 As Double = CDbl(r0("pfxdqdh"))
-    '    curGroupMin = v0
-    '    curGroupMax = v0
-    '    r0("group") = groupId
+            Dim a1 = SafeDouble(r1("dqdh"))
+            Dim b1 = SafeDouble(r1("dqdy1"))
+            Dim c1 = SafeDouble(r1("dqdy2"))
 
-    '    For i As Integer = 1 To dtOut.Rows.Count - 1
-    '        Dim rowCur As DataRow = dtOut.Rows(i)
-    '        ' 关键：在分组前对当前值向上取整（用 ceiling 后的整数比较）
-    '        Dim valCur As Double = CDbl(rowCur("pfxdqdh"))
+            Dim a2 = SafeDouble(r2("dqdh"))
+            Dim b2 = SafeDouble(r2("dqdy1"))
+            Dim c2 = SafeDouble(r2("dqdy2"))
 
-    '        Dim tempMin As Double = Math.Min(curGroupMin, valCur)
-    '        Dim tempMax As Double = Math.Max(curGroupMax, valCur)
+            ' 若任一值为 NaN 则跳过（不合并）
+            If Double.IsNaN(a1) Or Double.IsNaN(b1) Or Double.IsNaN(c1) Or Double.IsNaN(a2) Or Double.IsNaN(b2) Or Double.IsNaN(c2) Then
+                i += 1
+                Continue While
+            End If
 
-    '        'ID含"*"强制新开一组
-    '        Dim mustSplit As Boolean = rowCur("ID").ToString().Contains("*")
+            Dim eqA = Math.Abs(a1 - a2) <= tolerance
+            Dim eqB = Math.Abs(b1 - b2) <= tolerance
+            Dim eqC = Math.Abs(c1 - c2) <= tolerance
 
-    '        ' 关键：用 ">=" 而不是 ">"
-    '        '   整数 ceiling 差=1 时，">1" 不拆，">=1" 拆（保证不同高度绝不混组）
-    '        If mustSplit OrElse (tempMax - tempMin) >= threshold Then
-    '            groupId += 1
-    '            curGroupMin = valCur
-    '            curGroupMax = valCur
-    '        Else
-    '            curGroupMin = tempMin
-    '            curGroupMax = tempMax
-    '        End If
-    '        rowCur("group") = groupId
-    '    Next
+            If eqA AndAlso eqB AndAlso eqC Then
+                ' 删除第二组（后一行）
+                dt.Rows.RemoveAt(i + 1)
+                ' 不增加 i，下一轮比较仍与当前 i 的新后继比较
+            Else
+                i += 1
+            End If
+        End While
 
-    '    '===== 阶段2：按group聚合最小值与最大值（用原始 pfxdqdh 数值） =====
-    '    Dim dictGroupMin As New Dictionary(Of Integer, Double)
-    '    Dim dictGroupMax As New Dictionary(Of Integer, Double)
-    '    Dim distinctGroups = dtOut.AsEnumerable().Select(Function(r) CInt(r("group"))).Distinct().ToList()
+        ' 可选：重编号 group 为 0,1,2,...
+        If renumberGroups AndAlso dt.Columns.Contains("group") Then
+            Dim map As New Dictionary(Of Object, Integer)
+            Dim nextId As Integer = 0
+            For idx As Integer = 0 To dt.Rows.Count - 1
+                Dim g = dt.Rows(idx)("group")
+                If Not map.ContainsKey(g) Then
+                    map.Add(g, nextId)
+                    nextId += 1
+                End If
+                dt.Rows(idx)("group") = map(g)
+            Next
+        End If
 
-    '    For Each gNo As Integer In distinctGroups
-    '        Dim subRows = dtOut.AsEnumerable().Where(Function(r) CInt(r("group")) = gNo)
-    '        ' 用原始 pfxdqdh 聚合 min/max（保留真实数值，方便后续读出"该组挡墙高度最小值"）
-    '        dictGroupMin(gNo) = subRows.Min(Function(r) CDbl(r("pfxdqdh")))
-    '        dictGroupMax(gNo) = subRows.Max(Function(r) CDbl(r("pfxdqdh")))
-    '    Next
+        Return dt
+    End Function
 
-    '    '===== 阶段3：回写统一最小值/最大值 + ID追加"min" =====
-    '    For Each row As DataRow In dtOut.Rows
-    '        Dim g As Integer = CInt(row("group"))
-    '        row("min_pfxdqdh_group") = dictGroupMin(g)
-
-    '        If CDbl(row("pfxdqdh")) = dictGroupMin(g) Then
-    '            Dim id As String = row("ID").ToString()
-    '            If Not id.EndsWith("min") Then
-    '                row("ID") = id & "min"
-    '                row("dqdh_pre") = row("dqdy2") - row("min_pfxdqdh_group")
-    '                row("min_dh_group") = dictGroupMin(g)      '【新增】组内 pfxdqdh 最小值
-    '                row("max_dh_group") = dictGroupMax(g)      '【新增】组内 pfxdqdh 最大值
-    '            End If
-    '        End If
-    '    Next
-
-    '    '===== 阶段4：计算并回写 dqdh / dqdy1 =====
-    '    For Each gNo As Integer In distinctGroups
-    '        Dim firstMinRow As DataRow = dtOut.AsEnumerable() _
-    '        .Where(Function(r) CInt(r("group")) = gNo AndAlso r("ID").ToString().EndsWith("min")) _
-    '        .FirstOrDefault()
-
-    '        If firstMinRow IsNot Nothing Then
-    '            Dim dqdy2Val As Double
-    '            If dtOut.Columns.Contains("dqdy2") AndAlso Not IsDBNull(firstMinRow("dqdy2")) Then
-    '                dqdy2Val = CDbl(firstMinRow("dqdy2"))
-    '            Else
-    '                dqdy2Val = CDbl(firstMinRow("pfxdqdy2"))
-    '            End If
-
-    '            Dim minG As Double = CDbl(firstMinRow("min_pfxdqdh_group"))
-    '            Dim finalVal As Double = dqdy2Val - minG
-    '            For Each row As DataRow In dtOut.AsEnumerable().Where(Function(r) CInt(r("group")) = gNo)
-    '                row("dqdh") = finalVal
-    '                row("dqdy1") = row("dqdy2") - row("dqdh")
-    '            Next
-    '        End If
-    '    Next
-
-    '    Return dtOut
-    'End Function
 End Module

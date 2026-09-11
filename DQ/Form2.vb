@@ -16,14 +16,18 @@ Public Class Form2
         dtTemplate.Columns.Add("h", Type.GetType("System.Double")) '高差
 
         dtTemplate.Columns.Add("pfxdqdy2", Type.GetType("System.Double")) '顶
-        dtTemplate.Columns.Add("dq_‌foundation_height", Type.GetType("System.Double")) '基础埋深
+        dtTemplate.Columns.Add("pfx_dq_‌foundation_height", Type.GetType("System.Double")) '剖分线基础埋深
+        dtTemplate.Columns.Add("pfx_h_plus_f", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
         dtTemplate.Columns.Add("pfxdqdh", Type.GetType("System.Double")) '单个剖面的挡墙高度
         dtTemplate.Columns.Add("pfxdqdy1", Type.GetType("System.Double")) '底
+
         dtTemplate.Columns.Add("min_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
 
         dtTemplate.Columns.Add("dqdy2", Type.GetType("System.Double")) '顶
         dtTemplate.Columns.Add("h_plus_f", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
         dtTemplate.Columns.Add("dqdh", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
+
+        dtTemplate.Columns.Add("dq_‌foundation_height", Type.GetType("System.Double")) '剖分线基础埋深
         'dtTemplate.Columns.Add("finnal_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
         dtTemplate.Columns.Add("dqdy1", Type.GetType("System.Double")) '底
         dtTemplate.Columns.Add("group", Type.GetType("System.Double")) '分组
@@ -39,12 +43,14 @@ Public Class Form2
         dtTemplate.Columns（"y2"）.Caption = "地形顶高程y2"
         dtTemplate.Columns（"h"）.Caption = "地形高差h"
         dtTemplate.Columns（"dq_‌foundation_height"）.Caption = "挡墙基础埋深"
+        dtTemplate.Columns（"pfx_dq_‌foundation_height"）.Caption = "剖分线挡墙基础埋深"
         dtTemplate.Columns（"dqdh"）.Caption = "挡墙高度dqdh最终值"
         dtTemplate.Columns（"L"）.Caption = "挡墙长度L"
         dtTemplate.Columns（"dqdy1"）.Caption = "挡墙设计底高程dqdy1"
         dtTemplate.Columns（"dqdy2"）.Caption = "挡墙设计顶高程dqdy2"
         dtTemplate.Columns（"min_pfxdqdy1_group"）.Caption = "分组内剖分线最低值min_pfxdqdy1_group"
         'dtTemplate.Columns（"dqdh_pre"）.Caption = "挡墙高度计算值dqdh_pre"
+        dtTemplate.Columns（"pfx_h_plus_f"）.Caption = "高差+基础埋深"
         dtTemplate.Columns（"h_plus_f"）.Caption = "高差+基础埋深"
         dtTemplate.Columns（"group"）.Caption = "挡墙分组group"
         dtTemplate.Columns（"pd"）.Caption = "挡墙基底纵坡"
@@ -156,14 +162,16 @@ Public Class Form2
 
                     'Dim h_temp As Double = Math.Ceiling(dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("dq_‌foundation_height"))
                     Dim h_temp As Double = GetFirstCeilingKey(dtTemplate.Rows(m)("h"))
-                    dtTemplate.Rows(m)("dq_‌foundation_height") = dq_Map(h_temp).foundation_height
+
 
                     If h_temp < min_dq_height Then h_temp = min_dq_height '限制最小挡墙高度2m
 
                     dtTemplate.Rows(m)("pfxdqdh") = h_temp '该条分线处挡墙的高度的最小值，(地形高差+基础深度)，将来挡墙高不能比这个小
                     dtTemplate.Rows(m)("pfxdqdy1") = dtTemplate.Rows(m)("y2") - h_temp
                     dtTemplate.Rows(m)("pfxdqdy2") = dtTemplate.Rows(m)("y2")
-                    dtTemplate.Rows(m)("h_plus_f") = dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("dq_‌foundation_height")
+                    dtTemplate.Rows(m)("pfx_dq_‌foundation_height") = dq_Map(h_temp).foundation_height
+                    dtTemplate.Rows(m)("pfx_h_plus_f") = dtTemplate.Rows(m)("pfx_dq_‌foundation_height") + dtTemplate.Rows(m)("h")
+                    'dtTemplate.Rows(m)("h_plus_f") = dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("pfx_dq_‌foundation_height")
                     If m <> dtTemplate.Rows.Count - 1 Then
                         dtTemplate.Rows(m)("L") = dtTemplate.Rows(m + 1)("x") - dtTemplate.Rows(m)("x")
                         dtTemplate.Rows(m)("pd") = （dtTemplate.Rows(m + 1)("y1") - dtTemplate.Rows(m)("y1")） / dtTemplate.Rows(m)("L")
@@ -175,7 +183,8 @@ Public Class Form2
 
                 '第三步：准备dt（合并相同高度的相邻挡墙）
                 '改为按 pfxdqdh（向上取整后）分组，保证不同挡墙高度(1m/2m/3m)绝不混在同一组
-                dtTemplate = GroupByPfxdqdy1RangeFixed(dtTemplate, 1).Copy
+                'MessageBox.Show()
+                dtTemplate = GroupByPfxdqdy1RangeFixed(dtTemplate， dq_difference_height_base， min_segment_length).Copy
                 'AdjustSmallGroups(dtTemplate, min_segment_length)
 
                 '根据上一步的分组结果，合并分组，（其实就是新建datatable，并取各剖分线第一组）并更新相关数据
@@ -189,6 +198,7 @@ Public Class Form2
                 dt.Columns.Add("dqdy1", Type.GetType("System.Double"))
                 dt.Columns.Add("dqdy2", Type.GetType("System.Double"))
                 dt.Columns.Add("pd", Type.GetType("System.Double"))
+                dt.Columns.Add("dq_‌foundation_height", Type.GetType("System.Double")) '基础埋深
                 dt.Columns.Add("memo", Type.GetType("System.String"))
                 dt.Columns.Add("memo2", Type.GetType("System.String"))
                 'dt.Columns（"dqdh"）.Caption = "挡墙高度dqdh"
@@ -216,6 +226,7 @@ Public Class Form2
                         'dr1("L") = DBNull.Value
                         dr1("dqdy1") = dtTemplate.Rows(x)("dqdy1")
                         dr1("dqdy2") = dtTemplate.Rows(x)("dqdy2")
+                        dr1("dq_‌foundation_height") = dtTemplate.Rows(x)("dq_‌foundation_height")
                         dt.Rows.Add(dr1)
 
                         current_group = dtTemplate.Rows(x)("group")
@@ -262,6 +273,7 @@ Public Class Form2
                             'dr1("L") = DBNull.Value
                             dr1("dqdy1") = dtTemplate.Rows(x)("dqdy1")
                             dr1("dqdy2") = dtTemplate.Rows(x)("dqdy2")
+                            dr1("dq_‌foundation_height") = dtTemplate.Rows(x)("dq_‌foundation_height")
                             dt.Rows.Add(dr1)
                             current_group = dtTemplate.Rows(x)("group")
                         End If
@@ -269,6 +281,8 @@ Public Class Form2
 
                     End If
                 Next
+
+                dt = MergeAdjacentEqualGroups(dt)
 
                 '前推算法 暂时取消，假定在计算步长范围内，纵坡变化的导致的基础埋深不足可以忽略
                 'For j = 1 To dt.Rows.Count - 1
@@ -358,7 +372,7 @@ Public Class Form2
                     dt.Rows(dt.Rows.Count - 1)("memo") = "陡坡"
                 End If
 
-                Createdqdxf4（str_filename_temp, dt, datatable_B, datatable_T）
+                Createdqdxf4（str_filename_temp, dt, datatable_B, datatable_T, dtTemplate）
                 'Createdqdxf5（str_filename_temp, dtTemplate, datatable_B, datatable_T）
 
                 If ExcelHelper.IsFileLocked(str_filename_temp) = True Then
@@ -421,6 +435,8 @@ Public Class Form2
         step_cal = config.step_cal
         min_segment_length = config.min_segment_length
         dq_difference_height_base = config.dq_difference_height_base
+
+        'Me.Text = GetFirstCeilingKey(7.97)
     End Sub
 
     ' 4 个数值输入框共用的 KeyPress 事件：
