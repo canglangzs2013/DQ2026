@@ -108,9 +108,9 @@ Module Module_draw4
             Call Drawtext(doc, (x + x_next) * 0.5, (dqdy1 + dqdy2) * 0.5, dt_temp.Rows(i)("group") & "#") '挡墙编号
             'num_display.ToString("0.00")
         Next
-
+        '以下绘制剖分线
         For n = 0 To dtTemplate.Rows.Count - 1
-            '以下绘制剖分线
+
             Dim vertexes_p As New List(Of Vector2) From {
   New Vector2(dtTemplate.Rows(n)("x"), dtTemplate.Rows(n)("dqdy1")),
   New Vector2(dtTemplate.Rows(n)("x"), dtTemplate.Rows(n)("dqdy2"))
@@ -122,7 +122,7 @@ Module Module_draw4
             doc.Entities.Add(polyline_p)
             Call Drawtext(doc, dtTemplate.Rows(n)("x"), (dtTemplate.Rows(n)("dqdy2") + dtTemplate.Rows(n)("dqdy1")) * 0.5, dtTemplate.Rows(n)("ID")) '挡墙编号
         Next
-
+        '绘制标注线
         For j = 0 To dt_temp.Rows.Count - 1
             If j <> dt_temp.Rows.Count - 1 Then
                 Dim xCoords() As Double = {dt_temp.Rows(j)("x"), dt_temp.Rows(j + 1)("x")}

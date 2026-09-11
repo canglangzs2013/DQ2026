@@ -13,23 +13,23 @@ Public Class Form2
         dtTemplate.Columns.Add("x", Type.GetType("System.Double"))
         dtTemplate.Columns.Add("y1", Type.GetType("System.Double")) '底
         dtTemplate.Columns.Add("y2", Type.GetType("System.Double")) '顶
-        dtTemplate.Columns.Add("h", Type.GetType("System.Double")) '高差
-
         dtTemplate.Columns.Add("pfxdqdy2", Type.GetType("System.Double")) '顶
+        dtTemplate.Columns.Add("h", Type.GetType("System.Double")) '高差
         dtTemplate.Columns.Add("pfx_dq_‌foundation_height", Type.GetType("System.Double")) '剖分线基础埋深
         dtTemplate.Columns.Add("pfx_h_plus_f", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
         dtTemplate.Columns.Add("pfxdqdh", Type.GetType("System.Double")) '单个剖面的挡墙高度
         dtTemplate.Columns.Add("pfxdqdy1", Type.GetType("System.Double")) '底
 
-        dtTemplate.Columns.Add("min_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
+
 
         dtTemplate.Columns.Add("dqdy2", Type.GetType("System.Double")) '顶
         dtTemplate.Columns.Add("h_plus_f", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
         dtTemplate.Columns.Add("dqdh", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
-
-        dtTemplate.Columns.Add("dq_‌foundation_height", Type.GetType("System.Double")) '剖分线基础埋深
-        'dtTemplate.Columns.Add("finnal_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
         dtTemplate.Columns.Add("dqdy1", Type.GetType("System.Double")) '底
+        dtTemplate.Columns.Add("dq_‌foundation_height", Type.GetType("System.Double")) '剖分线基础埋深
+        dtTemplate.Columns.Add("min_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
+        'dtTemplate.Columns.Add("finnal_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
+
         dtTemplate.Columns.Add("group", Type.GetType("System.Double")) '分组
         dtTemplate.Columns.Add("max_y1_group", Type.GetType("System.Double")) '分组
         dtTemplate.Columns.Add("min_y1_group", Type.GetType("System.Double")) '分组
@@ -176,7 +176,7 @@ Public Class Form2
                         dtTemplate.Rows(m)("L") = dtTemplate.Rows(m + 1)("x") - dtTemplate.Rows(m)("x")
                         dtTemplate.Rows(m)("pd") = （dtTemplate.Rows(m + 1)("y1") - dtTemplate.Rows(m)("y1")） / dtTemplate.Rows(m)("L")
                         If Math.Abs（dtTemplate.Rows(m)("pd")） > 0.05 Then
-                            dtTemplate.Rows(m)("memo") = "陡坡sli"
+                            dtTemplate.Rows(m)("memo") = "陡纵坡"
                         End If
                     End If
                 Next
@@ -282,7 +282,22 @@ Public Class Form2
                     End If
                 Next
 
-                dt = MergeAdjacentEqualGroups(dt)
+
+
+                '前推算法 
+                For j = 1 To dt.Rows.Count - 1
+                    If （dt.Rows(j - 1)("dqdy1") + dt.Rows(j - 1)("dq_‌foundation_height")） > dt.Rows(j)("y1") Then
+                        '基础顶在地形底以下，前推
+                        If dt.Rows(j)("dqdy2") = dt.Rows(j - 1)("dqdy2") Then
+                            Dim row_id As Integer = GetRowIndexByX_Binary(dtTemplate, dt.Rows(j)("x")) - 1
+                            dt.Rows(j)("x") = dtTemplate.Rows(row_id)("x")
+                            'dt.Rows(j)("x") = dt.Rows(j - 1)("x")
+                            dt.Rows(j)("memo2") = "起点前推"
+                        End If
+                    End If
+                Next
+
+                dt = MergeAdjacentEqualGroups(dt) '相邻组相同时，合并挡墙分组
 
                 '前推算法 暂时取消，假定在计算步长范围内，纵坡变化的导致的基础埋深不足可以忽略
                 'For j = 1 To dt.Rows.Count - 1
@@ -361,7 +376,7 @@ Public Class Form2
                     Dim y1 As Double = dt.Rows(t)("y1")
                     dt.Rows(t)("pd") = (y1_next - y1) / (dt.Rows(t + 1)("x") - dt.Rows(t)("x"))
                     If Math.Abs（dt.Rows(t)("pd")） > 0.05 Then
-                        dt.Rows(t)("memo") = "陡坡"
+                        dt.Rows(t)("memo") = "陡纵坡"
                     End If
                     'dt.Rows(t)("name") = t & "#"
                 Next
@@ -369,7 +384,7 @@ Public Class Form2
                 dt.Rows(dt.Rows.Count - 1)("L") = dtTemplate.Rows(dtTemplate.Rows.Count - 1)("x") - dt.Rows(dt.Rows.Count - 1)("x")
                 dt.Rows(dt.Rows.Count - 1)("pd") = (dtTemplate.Rows(dtTemplate.Rows.Count - 1)("y1") - dt.Rows(dt.Rows.Count - 1)("y1")) / dt.Rows(dt.Rows.Count - 1)("L")
                 If Math.Abs（dt.Rows(dt.Rows.Count - 1)("pd")） > 0.05 Then
-                    dt.Rows(dt.Rows.Count - 1)("memo") = "陡坡"
+                    dt.Rows(dt.Rows.Count - 1)("memo") = "陡纵坡"
                 End If
 
                 Createdqdxf4（str_filename_temp, dt, datatable_B, datatable_T, dtTemplate）
@@ -425,27 +440,32 @@ Public Class Form2
     Private Sub Form2_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ' 读取 JSON 并绑定到界面的控件上
         Dim config As DqConfig = DqConfig.LoadConfig()
-        'txt_foundation_height.Text = config.dq_foundation_height.ToString()
-        txt_step_cal.Text = config.step_cal.ToString()
-        'txt_min_dq_length.Text = config.min_dq_length.ToString()
-        txt_difference_height_base.Text = config.dq_difference_height_base.ToString()
+
+
+        config.min_dq_height = min_dq_height
+        config.step_cal = step_cal
+        config.min_segment_length = min_segment_length
+        config.dq_difference_height_base = dq_difference_height_base
+        config.min_threshold = min_threshold
 
         ' 同步到模块级变量
         min_dq_height = config.min_dq_height
         step_cal = config.step_cal
         min_segment_length = config.min_segment_length
         dq_difference_height_base = config.dq_difference_height_base
+        min_threshold = config.min_threshold
 
+        txt_min_dq_height.Text = config.min_dq_height.ToString()
+        txt_step_cal.Text = config.step_cal.ToString()
+        txt_min_segment_length.Text = config.min_segment_length.ToString()
+        txt_dq_difference_height_base.Text = config.dq_difference_height_base.ToString()
+        txt_min_threshold.Text = config.min_threshold.ToString()
         'Me.Text = GetFirstCeilingKey(7.97)
     End Sub
 
     ' 4 个数值输入框共用的 KeyPress 事件：
     '   只允许 数字(0-9) / 小数点(.) / 退格，其它字符一律拦截
-    Private Sub NumericTextBox_KeyPress(sender As Object, e As KeyPressEventArgs) Handles _
-        txt_foundation_height.KeyPress,
-        txt_step_cal.KeyPress,
-        txt_min_dq_length.KeyPress,
-        txt_difference_height_base.KeyPress
+    Private Sub NumericTextBox_KeyPress(sender As Object, e As KeyPressEventArgs) Handles txt_min_dq_height.KeyPress, txt_step_cal.KeyPress, txt_min_threshold.KeyPress, txt_dq_difference_height_base.KeyPress
 
         ' 数字：通过
         If Char.IsDigit(e.KeyChar) Then Exit Sub
@@ -470,25 +490,25 @@ Public Class Form2
         ' 保存按钮：将界面参数写回 JSON，并同步到模块级变量
         Try
             ' 先做完整校验，给出具体到字段名的错误提示
-            Dim foundationHeight = ParseNonNegative("基础埋深", txt_foundation_height.Text)
-            Dim stepCal = ParseNonNegative("插入剖分线的计算步长", txt_step_cal.Text)
-            Dim minDqLength = ParseNonNegative("阈值1 两剖分线最小距离", txt_min_dq_length.Text)
-            Dim diffHeightBase = ParseNonNegative("阈值2 挡墙基底高差", txt_difference_height_base.Text)
+            Dim min_dq_height = ParseNonNegative("最小挡墙深度", txt_min_dq_height.Text)
+            Dim step_cal = ParseNonNegative("插入剖分线的计算步长", txt_step_cal.Text)
+            Dim min_threshold = ParseNonNegative("阈值1 两剖分线最小距离", txt_min_threshold.Text)
+            Dim dq_difference_height_base = ParseNonNegative("阈值2 挡墙基底高差", txt_dq_difference_height_base.Text)
 
             ' 校验通过，写入配置
             Dim config As New DqConfig()
-            'config.dq_foundation_height = foundationHeight
-            config.step_cal = stepCal
-            'config.min_dq_length = minDqLength
-            config.dq_difference_height_base = diffHeightBase
-
+            config.min_dq_height = min_dq_height
+            config.step_cal = step_cal
+            config.min_segment_length = min_segment_length
+            config.dq_difference_height_base = dq_difference_height_base
+            config.min_threshold = min_threshold
             ' 写入 JSON 文件
             DqConfig.SaveConfig(config)
 
             ' 同步到模块级变量（保证后续绘图逻辑立即生效）
-            'dq_‌foundation_height = config.dq_foundation_height
+            min_dq_height = config.min_dq_height
             step_cal = config.step_cal
-            'min_dq_length = config.min_dq_length
+            min_threshold = min_threshold
             min_segment_length = config.min_segment_length
             dq_difference_height_base = config.dq_difference_height_base
 
