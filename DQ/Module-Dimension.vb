@@ -13,6 +13,9 @@ Module Module4
 
         Dim doc As DxfDocument = _doc
         Dim dimStyle As New DimensionStyle("MyDimStyle")
+        '设置小数位数为 2 位
+        dimStyle.LengthPrecision = 2
+
         doc.DimensionStyles.Add(dimStyle)
 
 
@@ -74,7 +77,10 @@ Module Module4
     Sub CreateContinueDimensionsWithLoop_y(ByVal _doc As DxfDocument, ByVal _yCoords() As Double, ByVal _x As Double, ByVal scale_raito As Double)
         Dim doc As DxfDocument = _doc
         Dim dimStyle As New DimensionStyle("MyDimStyle")
+        '设置小数位数为 2 位
+        dimStyle.LengthPrecision = 2
         doc.DimensionStyles.Add(dimStyle)
+
 
 
         Dim layer As Layer

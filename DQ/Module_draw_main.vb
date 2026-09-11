@@ -88,8 +88,10 @@ Module Module_draw4
             'Call DrawElevations(doc, (x + x_next) * 0.5, dqdy1, dqdy1) '貌似底高程
             'Call DrawElevations(doc, x, dqdy2, dqdy2) '貌似顶高程
             'Call DrawElevations(doc, (x + x_next) * 0.5, (dqdy1 + dqdy2) * 0.5, dtTemplate.Rows(i)("group")) '挡墙编号
-            Call DrawElevations(doc, (x + x_next) * 0.5, dqdy1, dqdy1.ToString("0.00")) '貌似底高程
-            Call DrawElevations(doc, x, dqdy2, dqdy2.ToString("0.00")) '貌似顶高程
+            'Call DrawElevations(doc, (x + x_next) * 0.5, dqdy1, dqdy1.ToString("0.00")) '貌似底高程
+            'Call DrawElevations(doc, x, dqdy2, dqdy2.ToString("0.00")) '貌似顶高程
+            Call DrawElevations(doc, (x + x_next) * 0.5, dqdy1, dqdy1.ToString()) '貌似底高程
+            Call DrawElevations(doc, x, dqdy2, dqdy2.ToString()) '貌似顶高程
             Call Drawtext(doc, (x + x_next) * 0.5, (dqdy1 + dqdy2) * 0.5, dt_temp.Rows(i)("group") & "#") '挡墙编号
             'num_display.ToString("0.00")
         Next

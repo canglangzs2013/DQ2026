@@ -90,7 +90,7 @@ Public Class Form2
                 Next
 
 
-                '按步长 step_cal插入剖分线，插入时不能距离已有线太近，阈值为 min_dq_length
+                '按步长 step_cal插入剖分线，插入时不能距离已有线太近，阈值为  min_threshold
                 Dim minx As Double = datatable_T.Rows(0)("x")
                 Dim maxx As Double = datatable_T.Rows(datatable_T.Rows.Count - 1)("x")
                 Dim x_current As Double = minx
@@ -100,7 +100,7 @@ Public Class Form2
                         Dim boolean_effective As Boolean = True
                         ' 检查当前 x_current 是否与已有的控制点太近
                         For i = 1 To datatable_T.Rows.Count - 1
-                            If Math.Abs(x_current - datatable_T.Rows(i)("x")) < min_dq_length Then
+                            If Math.Abs(x_current - datatable_T.Rows(i)("x")) < min_threshold Then
                                 boolean_effective = False
                                 Exit For
                             End If
@@ -145,12 +145,20 @@ Public Class Form2
                 '准备除了x y1 y2 之外的基础数据
                 For m = 0 To dtTemplate.Rows.Count - 1
                     dtTemplate.Rows(m)("h") = dtTemplate.Rows(m)("y2") - dtTemplate.Rows(m)("y1")
-                    dtTemplate.Rows(m)("dq_‌foundation_height") = dq_‌foundation_height
-
+                    'If dtTemplate.Rows(m)("h") <= 1.5 Then
+                    '    dtTemplate.Rows(m)("dq_‌foundation_height") = 0.5
+                    'Else
+                    '    dtTemplate.Rows(m)("dq_‌foundation_height") = 1
+                    '    'dtTemplate.Rows(m)("dq_‌foundation_height") = dq_‌foundation_height
+                    'End If
                     dtTemplate.Rows(m)("dqdy2") = dtTemplate.Rows(m)("y2") '挡墙设计顶高程，因为是填方边坡，所以是固定值，
 
 
-                    Dim h_temp As Double = Math.Ceiling(dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("dq_‌foundation_height"))
+                    'Dim h_temp As Double = Math.Ceiling(dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("dq_‌foundation_height"))
+                    Dim h_temp As Double = GetFirstCeilingKey(dtTemplate.Rows(m)("h"))
+                    dtTemplate.Rows(m)("dq_‌foundation_height") = dq_Map(h_temp).foundation_height
+
+                    If h_temp < min_dq_height Then h_temp = min_dq_height '限制最小挡墙高度2m
 
                     dtTemplate.Rows(m)("pfxdqdh") = h_temp '该条分线处挡墙的高度的最小值，(地形高差+基础深度)，将来挡墙高不能比这个小
                     dtTemplate.Rows(m)("pfxdqdy1") = dtTemplate.Rows(m)("y2") - h_temp
@@ -168,49 +176,149 @@ Public Class Form2
                 '第三步：准备dt（合并相同高度的相邻挡墙）
                 '改为按 pfxdqdh（向上取整后）分组，保证不同挡墙高度(1m/2m/3m)绝不混在同一组
                 dtTemplate = GroupByPfxdqdy1RangeFixed(dtTemplate, 1).Copy
-
+                'AdjustSmallGroups(dtTemplate, min_segment_length)
 
                 '根据上一步的分组结果，合并分组，（其实就是新建datatable，并取各剖分线第一组）并更新相关数据
-                Dim dt = dtTemplate.Clone
+                'Dim dt = dtTemplate.Clone
+                Dim dt As DataTable = New DataTable
+                dt.Columns.Add("group", Type.GetType("System.Double")) '分组
+                dt.Columns.Add("dqdh", Type.GetType("System.Double")) '分组
+                dt.Columns.Add("L", Type.GetType("System.Double")) '分组
+                dt.Columns.Add("x", Type.GetType("System.Double"))
+                dt.Columns.Add("y1", Type.GetType("System.Double"))
+                dt.Columns.Add("dqdy1", Type.GetType("System.Double"))
+                dt.Columns.Add("dqdy2", Type.GetType("System.Double"))
+                dt.Columns.Add("pd", Type.GetType("System.Double"))
+                dt.Columns.Add("memo", Type.GetType("System.String"))
+                dt.Columns.Add("memo2", Type.GetType("System.String"))
+                'dt.Columns（"dqdh"）.Caption = "挡墙高度dqdh"
+                'dt.Columns（"L"）.Caption = "挡墙长度L"
+
+                'dt.Columns（"dqdy1"）.Caption = "挡墙设计底高程dqdy1"
+                'dt.Columns（"dqdy2"）.Caption = "挡墙设计顶高程dqdy2"
+                'dt.Columns（"pd"）.Caption = "挡墙基底纵坡"
+                'dt.Columns（"memo"）.Caption = "备注"
+
                 Dim current_group As Double = 0
                 For x = 0 To dtTemplate.Rows.Count - 1
                     If x = 0 Then
+
+                        'dr1 = dtTemplate.Rows(x)
+                        'dt.ImportRow(dr1)
+                        'dt.Rows(dt.Rows.Count - 1)("L") = DBNull.Value '这三项没有意义了，在dt中后续重新赋值
+                        'dt.Rows(dt.Rows.Count - 1)("pd") = DBNull.Value '这三项没有意义了，在dt中后续重新赋值
+                        'dt.Rows(dt.Rows.Count - 1)("memo") = "" '这三项没有意义了，在dt中后续重新赋值
                         Dim dr1 = dt.NewRow
-                        dr1 = dtTemplate.Rows(x)
-                        dt.ImportRow(dr1)
-                        dt.Rows(dt.Rows.Count - 1)("L") = DBNull.Value '这三项没有意义了，在dt中后续重新赋值
-                        dt.Rows(dt.Rows.Count - 1)("pd") = DBNull.Value '这三项没有意义了，在dt中后续重新赋值
-                        dt.Rows(dt.Rows.Count - 1)("memo") = "" '这三项没有意义了，在dt中后续重新赋值
+                        dr1("x") = dtTemplate.Rows(x)("x")
+                        dr1("y1") = dtTemplate.Rows(x)("y1")
+                        dr1("group") = dtTemplate.Rows(x)("group")
+                        dr1("dqdh") = dtTemplate.Rows(x)("dqdh")
+                        'dr1("L") = DBNull.Value
+                        dr1("dqdy1") = dtTemplate.Rows(x)("dqdy1")
+                        dr1("dqdy2") = dtTemplate.Rows(x)("dqdy2")
+                        dt.Rows.Add(dr1)
+
                         current_group = dtTemplate.Rows(x)("group")
+                        'ElseIf x < dtTemplate.Rows.Count - 1 And x > 0 Then
                     ElseIf x < dtTemplate.Rows.Count - 1 And x > 0 Then
                         If dtTemplate.Rows(x)("group") <> current_group Then
-                            Dim dr2 = dt.NewRow
+                            'Dim dr2 = dt.NewRow
 
-                            '起点前推算法，解决两段挡墙之间的挡墙的归属，如果下一段挡墙的pfxdqdy1，低于当前挡墙的pfxdqdy1，则将下一段挡墙的pfxdqdy1，前推到当前挡墙的pfxdqdy1，避免过渡段挡墙的基础埋深不满足要求
-                            If dtTemplate.Rows(x)("pfxdqdy1") < dtTemplate.Rows(x - 1)("pfxdqdy1") Then
-                                dr2 = dtTemplate.Rows(x)
-                                'dr2("ID") = dtTemplate.Rows(x - 1)("ID") & "起点前推"
-                                dr2("memo2") = "起点前推"
-                                dr2("x") = dtTemplate.Rows(x - 1)("x")
-                                dr2("y2") = dtTemplate.Rows(x - 1)("y2")
-                                dr2("y1") = dtTemplate.Rows(x - 1)("y1")
-                                dr2("h") = dtTemplate.Rows(x - 1)("h")
-                                dr2("dq_‌foundation_height") = dtTemplate.Rows(x - 1)("dq_‌foundation_height")
-                            Else
-                                dr2 = dtTemplate.Rows(x)
-                            End If
+                            ''起点前推算法，解决两段挡墙之间的挡墙的归属，如果下一段挡墙的pfxdqdy1，低于当前挡墙的pfxdqdy1，则将下一段挡墙的pfxdqdy1，前推到当前挡墙的pfxdqdy1，避免过渡段挡墙的基础埋深不满足要求
+                            'If dtTemplate.Rows(x)("pfxdqdy1") < dtTemplate.Rows(x - 1)("pfxdqdy1") Then
+                            '    dr2 = dtTemplate.Rows(x)
+                            '    'dr2("ID") = dtTemplate.Rows(x - 1)("ID") & "起点前推"
+                            '    dr2("memo2") = "起点前推"
+                            '    'dr2("x") = dtTemplate.Rows(x - 1)("x")
+                            '    'dr2("y2") = dtTemplate.Rows(x - 1)("y2")
+                            '    'dr2("y1") = dtTemplate.Rows(x - 1)("y1")
+                            '    'dr2("h") = dtTemplate.Rows(x - 1)("h")
+                            '    'dr2("dq_‌foundation_height") = dtTemplate.Rows(x - 1)("dq_‌foundation_height")
+
+                            '    'dr2("x") = dtTemplate.Rows(x - 1)("x")
+                            '    'dr2("y2") = dtTemplate.Rows(x - 1)("y2")
+                            '    'dr2("y1") = dtTemplate.Rows(x - 1)("y1")
+                            '    'dr2("h") = dtTemplate.Rows(x - 1)("h")
+                            '    'dr2("dq_‌foundation_height") = dtTemplate.Rows(x - 1)("dq_‌foundation_height")
+                            '    dr2 = dtTemplate.Rows(x - 1)
+                            '    dr2("dqdh") = dtTemplate.Rows(x)（"dqdh"）
+                            '    dr2("x") = dtTemplate.Rows(x)（"dqdh"）
+
+                            'Else
+                            '    dr2 = dtTemplate.Rows(x)
+                            'End If
 
                             'dr2 = dtTemplate.Rows(x)
-                            dt.ImportRow(dr2)
-                            dt.Rows(dt.Rows.Count - 1)("L") = DBNull.Value '这三项没有意义了，在dt中后续重新赋值
-                            dt.Rows(dt.Rows.Count - 1)("pd") = DBNull.Value '这三项没有意义了，在dt中后续重新赋值
-                            dt.Rows(dt.Rows.Count - 1)("memo") = "" '这三项没有意义了，在dt中后续重新赋值
+                            'dt.ImportRow(dr2)
+                            'dt.Rows(dt.Rows.Count - 1)("L") = DBNull.Value '这三项没有意义了，在dt中后续重新赋值
+                            'dt.Rows(dt.Rows.Count - 1)("pd") = DBNull.Value '这三项没有意义了，在dt中后续重新赋值
+                            'dt.Rows(dt.Rows.Count - 1)("memo") = "" '这三项没有意义了，在dt中后续重新赋值
+                            '
+                            Dim dr1 = dt.NewRow
+                            dr1("x") = dtTemplate.Rows(x)("x")
+                            dr1("y1") = dtTemplate.Rows(x)("y1")
+                            dr1("group") = dtTemplate.Rows(x)("group")
+                            dr1("dqdh") = dtTemplate.Rows(x)("dqdh")
+                            'dr1("L") = DBNull.Value
+                            dr1("dqdy1") = dtTemplate.Rows(x)("dqdy1")
+                            dr1("dqdy2") = dtTemplate.Rows(x)("dqdy2")
+                            dt.Rows.Add(dr1)
                             current_group = dtTemplate.Rows(x)("group")
                         End If
                         'ElseIf x = dtTemplate.Rows.Count - 1 Then
 
                     End If
                 Next
+
+                '前推算法 暂时取消，假定在计算步长范围内，纵坡变化的导致的基础埋深不足可以忽略
+                'For j = 1 To dt.Rows.Count - 1
+                '    If dt.Rows(j)("dqdy1") < dt.Rows(j - 1)("dqdy1") Then
+                '        Dim row_id As Integer = GetRowIndexByX_Binary(dtTemplate, dt.Rows(j)("x")) - 1
+                '        If row_id > 0 Then
+                '            dt.Rows(j)("x") = dtTemplate.Rows(row_id)("x")
+                '            dt.Rows(j)("memo2") = "起点前推"
+                '        Else
+                '            MessageBox.Show("起点前推出错!")
+                '        End If
+                '    End If
+                'Next
+
+                ''最小挡墙分段
+                'For j = 1 To dt.Rows.Count - 3
+                '    If (dt.Rows(j)("x") - dt.Rows(j - 1)("x")) < min_segment_length Then
+                '        Dim L_before As Double = dt.Rows(j)("x") - dt.Rows(j - 1)("x")
+                '        Dim L_after As Double = dt.Rows(j + 2)("x") - dt.Rows(j + 1)("x")
+                '        If L_after >= L_before Then '合并进入前段
+                '            dt.Rows(j - 1)("dqdy1") = Math.Min(dt.Rows(j)("dqdy1"), dt.Rows(j - 1)("dqdy1"))
+                '            dt.Rows(j - 1)("dqdh") = dt.Rows(j - 1)("dqdy2") - dt.Rows(j - 1)("dqdy1")
+                '            dt.Rows(j)("memo2") = "待删除"
+                '            'dt.Rows(j)("x") = dt.Rows(j)("x-1")
+                '        Else '合并入后段
+                '            dt.Rows(j + 1)("x") = dt.Rows(j)("x")
+                '            dt.Rows(j + 1)("dqdy1") = Math.Min(dt.Rows(j + 1)("dqdy1"), dt.Rows(j)("dqdy1"))
+                '            dt.Rows(j)("memo2") = "待删除"
+                '        End If
+                '        'Dim row_id As Integer = GetRowIndexByX_Binary(dtTemplate, dt.Rows(j)("x")) - 1
+                '        'If row_id > 0 Then
+                '        '    dt.Rows(j)("x") = dtTemplate.Rows(row_id)("x")
+                '        '    dt.Rows(j)("memo2") = "起点前推"
+                '        'Else
+                '        '    MessageBox.Show("起点前推出错!")
+                '        'End If
+                '    End If
+                'Next
+
+                'Dim deleteRows As New List(Of DataRow)
+                'For j As Integer = 0 To dt.Rows.Count - 1
+                '    If dt.Rows(j)("memo2").ToString() = "待删除" Then
+                '        deleteRows.Add(dt.Rows(j))
+                '    End If
+                'Next
+
+                'For Each dr As DataRow In deleteRows
+                '    dr.Delete()
+                'Next
+                'dt.AcceptChanges()
 
 
 
@@ -232,7 +340,7 @@ Public Class Form2
                 '    dt.Rows(k)("dqdh") = dt.Rows(k)("dqdy2") - dt.Rows(k)("dqdy1")
                 'Next
 
-                '第四步：再次更新整理dt的L(挡墙长度)
+                '第四步：再次更新整理dt的L(挡墙长度)和纵坡
                 For t = 0 To dt.Rows.Count - 2
                     dt.Rows(t)("L") = dt.Rows(t + 1)("x") - dt.Rows(t)("x")
                     Dim y1_next As Double = dt.Rows(t + 1)("y1")
@@ -243,7 +351,7 @@ Public Class Form2
                     End If
                     'dt.Rows(t)("name") = t & "#"
                 Next
-
+                '单独整理最后一段挡墙的数据
                 dt.Rows(dt.Rows.Count - 1)("L") = dtTemplate.Rows(dtTemplate.Rows.Count - 1)("x") - dt.Rows(dt.Rows.Count - 1)("x")
                 dt.Rows(dt.Rows.Count - 1)("pd") = (dtTemplate.Rows(dtTemplate.Rows.Count - 1)("y1") - dt.Rows(dt.Rows.Count - 1)("y1")) / dt.Rows(dt.Rows.Count - 1)("L")
                 If Math.Abs（dt.Rows(dt.Rows.Count - 1)("pd")） > 0.05 Then
@@ -303,15 +411,15 @@ Public Class Form2
     Private Sub Form2_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ' 读取 JSON 并绑定到界面的控件上
         Dim config As DqConfig = DqConfig.LoadConfig()
-        txt_foundation_height.Text = config.dq_foundation_height.ToString()
+        'txt_foundation_height.Text = config.dq_foundation_height.ToString()
         txt_step_cal.Text = config.step_cal.ToString()
-        txt_min_dq_length.Text = config.min_dq_length.ToString()
+        'txt_min_dq_length.Text = config.min_dq_length.ToString()
         txt_difference_height_base.Text = config.dq_difference_height_base.ToString()
 
         ' 同步到模块级变量
-        dq_‌foundation_height = config.dq_foundation_height
+        min_dq_height = config.min_dq_height
         step_cal = config.step_cal
-        min_dq_length = config.min_dq_length
+        min_segment_length = config.min_segment_length
         dq_difference_height_base = config.dq_difference_height_base
     End Sub
 
@@ -353,18 +461,19 @@ Public Class Form2
 
             ' 校验通过，写入配置
             Dim config As New DqConfig()
-            config.dq_foundation_height = foundationHeight
+            'config.dq_foundation_height = foundationHeight
             config.step_cal = stepCal
-            config.min_dq_length = minDqLength
+            'config.min_dq_length = minDqLength
             config.dq_difference_height_base = diffHeightBase
 
             ' 写入 JSON 文件
             DqConfig.SaveConfig(config)
 
             ' 同步到模块级变量（保证后续绘图逻辑立即生效）
-            dq_‌foundation_height = config.dq_foundation_height
+            'dq_‌foundation_height = config.dq_foundation_height
             step_cal = config.step_cal
-            min_dq_length = config.min_dq_length
+            'min_dq_length = config.min_dq_length
+            min_segment_length = config.min_segment_length
             dq_difference_height_base = config.dq_difference_height_base
 
             MessageBox.Show("参数已保存。", "保存成功", MessageBoxButtons.OK, MessageBoxIcon.Information)
