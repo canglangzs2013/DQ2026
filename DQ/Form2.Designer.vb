@@ -36,6 +36,7 @@ Partial Class Form2
         Button1 = New Button()
         txt_min_segment_length = New TextBox()
         Label1 = New Label()
+        Button3 = New Button()
         SuspendLayout()
         ' 
         ' lbl_title
@@ -151,9 +152,9 @@ Partial Class Form2
         Button1.Location = New Point(19, 348)
         Button1.Margin = New Padding(3, 2, 3, 2)
         Button1.Name = "Button1"
-        Button1.Size = New Size(579, 62)
+        Button1.Size = New Size(579, 65)
         Button1.TabIndex = 10
-        Button1.Text = "打开挡墙数据文件绘图"
+        Button1.Text = "打开挡墙的墙顶墙底数据文件绘图"
         Button1.TextImageRelation = TextImageRelation.ImageBeforeText
         Button1.UseVisualStyleBackColor = True
         ' 
@@ -178,11 +179,25 @@ Partial Class Form2
         Label1.Text = "挡墙最小分段长度："
         Label1.TextAlign = ContentAlignment.MiddleLeft
         ' 
+        ' Button3
+        ' 
+        Button3.Font = New Font("Microsoft YaHei UI", 12F, FontStyle.Regular, GraphicsUnit.Point, CByte(134))
+        Button3.Image = My.Resources.Resources.Justicon_Free_Simple_Line_Folder_Check_File_Folder_File_Document_Document_Check_48
+        Button3.Location = New Point(17, 423)
+        Button3.Margin = New Padding(3, 2, 3, 2)
+        Button3.Name = "Button3"
+        Button3.Size = New Size(579, 65)
+        Button3.TabIndex = 13
+        Button3.Text = "打开人工修改的挡墙数据文件绘图"
+        Button3.TextImageRelation = TextImageRelation.ImageBeforeText
+        Button3.UseVisualStyleBackColor = True
+        ' 
         ' Form2
         ' 
         AutoScaleDimensions = New SizeF(9F, 20F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(617, 418)
+        ClientSize = New Size(617, 567)
+        Controls.Add(Button3)
         Controls.Add(txt_min_segment_length)
         Controls.Add(Label1)
         Controls.Add(Button1)
@@ -219,4 +234,5 @@ Partial Class Form2
     Friend WithEvents Button1 As Button
     Friend WithEvents txt_min_segment_length As TextBox
     Friend WithEvents Label1 As Label
+    Friend WithEvents Button3 As Button
 End Class

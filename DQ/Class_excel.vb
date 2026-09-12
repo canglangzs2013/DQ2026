@@ -6,7 +6,7 @@ Imports NPOI.HSSF.UserModel
 Imports NPOI.SS.Formula.Functions
 Imports NPOI.SS.UserModel
 Imports NPOI.XSSF.UserModel
-
+'貌似是excel的基本操作，不可排除’
 Public Class ExcelHelper
     ' 创建新的Excel工作簿
     Public Function CreateNewWorkbook() As IWorkbook
@@ -61,14 +61,14 @@ Public Class ExcelHelper
 
                                     Dim columnType As Type = datatable_temp.Columns(colNum).DataType
 
-                                    If columnType Is GetType(String) Then
-                                        dr(colNum) = GetCellValue(row.GetCell(colNum))
-                                    ElseIf columnType Is GetType(Double) Then
-                                        'Console.WriteLine($"{columnName} 是Double类型")
-                                        '如果是模版配置的长度或者放大系数的系数列， 只能取为数值， 否则会报错
-                                        dr(colNum) = GetCellValue_ONLYNUMBER(row.GetCell(colNum))
-                                        'MessageBox.Show("columnType Is GetType(Double)")
-                                    Else
+                                If columnType Is GetType(String) Then
+                                    dr(colNum) = GetCellValue(row.GetCell(colNum))
+                                ElseIf columnType Is GetType(Decimal) Then
+                                    'Console.WriteLine($"{columnName} 是Double类型")
+                                    '如果是模版配置的长度或者放大系数的系数列， 只能取为数值， 否则会报错
+                                    dr(colNum) = GetCellValue_ONLYNUMBER(row.GetCell(colNum))
+                                    'MessageBox.Show("columnType Is GetType(Decimal)")
+                                Else
                                         'Console.WriteLine($"{columnName} 是其他类型: {columnType.Name}")
                                     End If
 
@@ -153,8 +153,8 @@ Public Class ExcelHelper
             Case CellType.String
                 'Return cell.StringCellValue
                 'Return 0
-                Dim quantity As Double = 0
-                Double.TryParse(cell.ToString(), quantity)
+                Dim quantity As Decimal = 0
+                Decimal.TryParse(cell.ToString(), quantity)
                 Return quantity
             Case CellType.Boolean
                 'Return cell.BooleanCellValue

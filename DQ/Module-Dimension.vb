@@ -12,7 +12,7 @@ Module Module4
 
 
         Dim doc As DxfDocument = _doc
-        Dim dimStyle As New DimensionStyle("MyDimStyle")
+        Dim dimStyle As New DimensionStyle("DJL挡墙立面图标注样式")
         '设置小数位数为 2 位
         dimStyle.LengthPrecision = 2
 

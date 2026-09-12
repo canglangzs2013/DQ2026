@@ -2,199 +2,123 @@
 Imports NPOI.SS.UserModel
 Imports NPOI.HSSF.UserModel
 Imports NPOI.XSSF.UserModel
+
 Public Class Class_read_excel
-    '/// <summary>  
-    '/// 读取Excel保存为datatable  
-    '/// </summary>  
-    '/// <param name="filePath">Excel文件路径</param>  
-    '/// <param name="startRow">第几行开始读取</param>  
-    '/// <returns></returns>  
+
+    ''' <summary>
+    ''' 读取Excel(xls/xlsx)，按dt_input结构填充；自动识别真实格式，不依赖扩展名
+    ''' </summary>
     Public Function DoReadExcelDataTable(ByVal filePath As String, ByVal sheet_id As Integer, ByVal dt_input As DataTable) As DataTable
-        'Try
-        'Dim dt As DataTable = New DataTable()
-        Dim dt As DataTable = dt_input.Clone
-
-            'If (!File.Exists(filePath)) Then
-            '{  
-            '    return dt;  
-            '}  
-
-            If File.Exists(filePath) = False Then
-                Return dt
-            End If
-
-            Dim workbook As HSSFWorkbook = Nothing
-
-
-            Dim sheet As HSSFSheet = Nothing
-
-
-            Dim fs As FileStream = New FileStream(filePath, FileMode.Open, FileAccess.Read)
-
-
-            workbook = New HSSFWorkbook(fs)
-
-
-            sheet = workbook.GetSheetAt(sheet_id)
-
-
-
-
-
-            Dim rowCount As Integer = sheet.LastRowNum
-
-
-            'for (int i = (sheet.FirstRowNum + 1); i <= sheet.LastRowNum; i++)
-            'For i = sheet.FirstRowNum + 2 To sheet.LastRowNum
-            For i = sheet.FirstRowNum + 2 To sheet.LastRowNum
-
-                Dim row As HSSFRow = sheet.GetRow(i)
-                Dim dtrow As DataRow = dt.NewRow()
-
-                Dim cellCount As Integer = row.LastCellNum
-                For j = row.FirstCellNum To cellCount - 1
-                    'for (int j = row.FirstCellNum; j < cellCount; j++)  
-                    'If IsNothing(row.GetCell(j)) = False Then
-                    'if (row.GetCell(j) != null)  
-                    'dtrow[j] = row.GetCell(j).ToString();
-
-                    If String.IsNullOrEmpty(row.GetCell(j).ToString) = False Then
-                        dtrow(j) = row.GetCell(j).ToString()
-                    End If
-
-
-                Next
-
-                dt.Rows.Add(dtrow)
-            Next
-            sheet = Nothing
-
-
-            workbook = Nothing
-
-
-            Return dt
-        'Catch
-        '    Return Nothing
-        'End Try
-    End Function
-
-
-    Public Function get_sheet_number(ByVal filePath As String) As Integer
-        'Dim dt As DataTable = New DataTable()
-        'Dim dt As DataTable = dt_input.Clone
-
-        'If (!File.Exists(filePath)) Then
-        '{  
-        '    return dt;  
-        '}  
-
-        If File.Exists(filePath) = False Then
-            Return 0
+        If dt_input Is Nothing Then
+            Throw New ArgumentNullException(NameOf(dt_input), "dt_input不能为Nothing")
         End If
 
-       
+        Dim dt As DataTable = dt_input.Clone()
+
+        '文件存在性与有效性校验
+        If Not File.Exists(filePath) Then
+            MessageBox.Show("文件不存在：" & filePath, "读取Excel", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return dt
+        End If
+        If New FileInfo(filePath).Length < 1024 Then
+            MessageBox.Show("文件为空或已损坏（大小 " & New FileInfo(filePath).Length & " 字节）：" & filePath,
+                            "读取Excel", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return dt
+        End If
+
+        If sheet_id < 0 Then
+            Return dt
+        End If
 
         Try
-            Dim workbook As HSSFWorkbook = Nothing
-            Dim sheet As HSSFSheet = Nothing
-            Dim fs As FileStream = New FileStream(filePath, FileMode.Open, FileAccess.Read)
-            workbook = New HSSFWorkbook(fs)
+            Using fs As New FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                '★★★★★ 核心修复：自动识别 OLE2(.xls) / OOXML(.xlsx)，不再看扩展名 ★★★★★
+                Dim workbook As IWorkbook = WorkbookFactory.Create(fs)
 
-            Return workbook.NumberOfSheets
+                Try
+                    If sheet_id >= workbook.NumberOfSheets Then
+                        Return dt
+                    End If
 
-            sheet = Nothing
-            workbook = Nothing
-        Catch
-            MessageBox.Show("文件" & filePath & "可能格式不正确或被占用，打开失败！", "警告", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            Return 0
+                    Dim sheet As ISheet = workbook.GetSheetAt(sheet_id)
+
+                    '数据起点固定为第2行(0标题,1表头)，不依赖FirstRowNum避免-1
+                    Dim startRowIndex As Integer = 2
+                    If sheet.LastRowNum < startRowIndex Then
+                        Return dt   '空表
+                    End If
+
+                    For i As Integer = startRowIndex To sheet.LastRowNum
+                        Dim row As IRow = sheet.GetRow(i)
+                        If row Is Nothing Then
+                            Continue For
+                        End If
+
+                        Dim dtrow As DataRow = dt.NewRow()
+                        Dim hasData As Boolean = False
+
+                        '列循环直接用模板列数，避免 FirstCellNum=-1
+                        For j As Integer = 0 To dt.Columns.Count - 1
+                            Dim cell As ICell = row.GetCell(j, MissingCellPolicy.RETURN_NULL_AND_BLANK)
+                            If cell Is Nothing Then
+                                dtrow(j) = DBNull.Value
+                                Continue For
+                            End If
+
+                            Dim cellVal As Object = GetCellValue(cell)
+                            dtrow(j) = If(cellVal Is Nothing, DBNull.Value, cellVal)
+
+                            If Not IsDBNull(dtrow(j)) Then
+                                hasData = True
+                            End If
+                        Next
+
+                        If hasData Then
+                            dt.Rows.Add(dtrow)
+                        End If
+                    Next
+                Finally
+                    workbook.Close()
+                End Try
+            End Using
+        Catch ex As IOException
+            MessageBox.Show($"文件IO异常：{ex.Message}", "读取Excel", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+        Catch ex As Exception
+            MessageBox.Show($"读取Excel出错：{ex.Message}", "读取Excel", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
 
-
-
-
-        'Dim row1 As HSSFRow = sheet.GetRow(startRow)
-
-
-        'Dim cellCount As Integer = row1.LastCellNum
-
-
-        '//此处是读取列名的，如果不需要列名则注释此代码  
-        'for (int i = row1.FirstCellNum; i < row1.LastCellNum; i++)  
-        '{  
-        '    DataColumn columItem = new DataColumn(row1.GetCell(i).StringCellValue);  
-        '    dt.Columns.Add(columItem);  
-        '}  
-
-
-
-        
-
-
-
+        Return dt
     End Function
 
+    ''' <summary>
+    ''' 通用取单元格值：公式取缓存结果，处理数字/日期/文本/布尔/空
+    ''' </summary>
+    Private Function GetCellValue(cell As ICell) As Object
+        If cell.CellType = CellType.Formula Then
+            Select Case cell.CachedFormulaResultType
+                Case CellType.String
+                    Return cell.StringCellValue
+                Case CellType.Numeric
+                    Return If(DateUtil.IsCellDateFormatted(cell), CObj(cell.DateCellValue), CObj(cell.NumericCellValue))
+                Case CellType.Boolean
+                    Return cell.BooleanCellValue
+                Case Else
+                    Return Nothing
+            End Select
+        End If
 
-    Public Function DoReadExcelDataTable_cell(ByVal filePath As String, ByVal sheet_id As Integer, ByVal dt_input As DataTable) As String
-        Try
-            'Dim dt As DataTable = New DataTable()
-            Dim dt As DataTable = dt_input.Clone
-
-            'If (!File.Exists(filePath)) Then
-            '{  
-            '    return dt;  
-            '}  
-
-            If File.Exists(filePath) = False Then
-                Return "K=1"
-            End If
-
-            Dim workbook As HSSFWorkbook = Nothing
-
-
-            Dim sheet As HSSFSheet = Nothing
-
-
-            Dim fs As FileStream = New FileStream(filePath, FileMode.Open, FileAccess.Read)
-
-
-            workbook = New HSSFWorkbook(fs)
-
-
-            sheet = workbook.GetSheetAt(sheet_id)
-
-
-
-
-
-            Dim rowCount As Integer = sheet.LastRowNum
-
-
-            Dim k As String
-            Dim row As HSSFRow = sheet.GetRow(0)
-
-            If String.IsNullOrEmpty(row.GetCell(0).ToString) = False Then
-                k = row.GetCell(0).ToString()
-            Else
-                Return "K=1"
-            End If
-
-
-            Return k
-
-
-            sheet = Nothing
-
-
-            workbook = Nothing
-
-
-
-        Catch
-            MessageBox.Show("DoReadExcelDataTable_cell错误！")
-            Return Nothing
-        End Try
+        Select Case cell.CellType
+            Case CellType.Blank
+                Return Nothing
+            Case CellType.String
+                Return cell.StringCellValue
+            Case CellType.Numeric
+                Return If(DateUtil.IsCellDateFormatted(cell), CObj(cell.DateCellValue), CObj(cell.NumericCellValue))
+            Case CellType.Boolean
+                Return cell.BooleanCellValue
+            Case Else
+                Return cell.ToString()
+        End Select
     End Function
-
 
 End Class

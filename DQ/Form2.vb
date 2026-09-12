@@ -7,66 +7,67 @@ Public Class Form2
         '创建新的DataTable模板
 
         'Dim dataset_landslide_AB_point As DataSet = New DataSet
-        Dim dtTemplate = New DataTable
-        dtTemplate.Columns.Add("ID", Type.GetType("System.String"))
-        dtTemplate.Columns.Add("‌memo2", Type.GetType("System.String"))
-        dtTemplate.Columns.Add("x", Type.GetType("System.Double"))
-        dtTemplate.Columns.Add("y1", Type.GetType("System.Double")) '底
-        dtTemplate.Columns.Add("y2", Type.GetType("System.Double")) '顶
-        dtTemplate.Columns.Add("pfxdqdy2", Type.GetType("System.Double")) '顶
-        dtTemplate.Columns.Add("h", Type.GetType("System.Double")) '高差
-        dtTemplate.Columns.Add("pfx_dq_‌foundation_height", Type.GetType("System.Double")) '剖分线基础埋深
-        dtTemplate.Columns.Add("pfx_h_plus_f", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
-        dtTemplate.Columns.Add("pfxdqdh", Type.GetType("System.Double")) '单个剖面的挡墙高度
-        dtTemplate.Columns.Add("pfxdqdy1", Type.GetType("System.Double")) '底
+        Dim dtTemplate As DataTable = ini_dtTemplate()
+        'dtTemplate.Columns.Add("ID", GetType(String))
+        'dtTemplate.Columns.Add("‌memo2", GetType(String))
+        'dtTemplate.Columns.Add("x", GetType(Decimal))
+        'dtTemplate.Columns.Add("y1", GetType(Decimal)) '底
+        'dtTemplate.Columns.Add("y2", GetType(Decimal)) '顶
+        'dtTemplate.Columns.Add("pfxdqdy2", GetType(Decimal)) '顶
+        'dtTemplate.Columns.Add("h", GetType(Decimal)) '高差
+        'dtTemplate.Columns.Add("pfx_dq_‌foundation_height", GetType(Decimal)) '剖分线基础埋深
+        'dtTemplate.Columns.Add("pfx_h_plus_f", GetType(Decimal)) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
+        'dtTemplate.Columns.Add("pfxdqdh", GetType(Decimal)) '单个剖面的挡墙高度
+        'dtTemplate.Columns.Add("pfxdqdy1", GetType(Decimal)) '底
 
 
 
-        dtTemplate.Columns.Add("dqdy2", Type.GetType("System.Double")) '顶
-        dtTemplate.Columns.Add("h_plus_f", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
-        dtTemplate.Columns.Add("dqdh", Type.GetType("System.Double")) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
-        dtTemplate.Columns.Add("dqdy1", Type.GetType("System.Double")) '底
-        dtTemplate.Columns.Add("dq_‌foundation_height", Type.GetType("System.Double")) '剖分线基础埋深
-        dtTemplate.Columns.Add("min_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
-        'dtTemplate.Columns.Add("finnal_pfxdqdy1_group", Type.GetType("System.Double")) '同一个分组的最小pfxdqdy1
+        'dtTemplate.Columns.Add("dqdy2", GetType(Decimal)) '顶
+        'dtTemplate.Columns.Add("h_plus_f", GetType(Decimal)) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
+        'dtTemplate.Columns.Add("dqdh", GetType(Decimal)) '设计挡墙高度.刚开始是单个剖面的，后来是分组的
+        'dtTemplate.Columns.Add("dqdy1", GetType(Decimal)) '底
+        'dtTemplate.Columns.Add("dq_‌foundation_height", GetType(Decimal)) '剖分线基础埋深
+        'dtTemplate.Columns.Add("min_pfxdqdy1_group", GetType(Decimal)) '同一个分组的最小pfxdqdy1
+        ''dtTemplate.Columns.Add("finnal_pfxdqdy1_group", GetType(Decimal)) '同一个分组的最小pfxdqdy1
 
-        dtTemplate.Columns.Add("group", Type.GetType("System.Double")) '分组
-        dtTemplate.Columns.Add("max_y1_group", Type.GetType("System.Double")) '分组
-        dtTemplate.Columns.Add("min_y1_group", Type.GetType("System.Double")) '分组
-        'dtTemplate.Columns.Add("group", Type.GetType("System.Double")) '分组
-        dtTemplate.Columns.Add("‌memo", Type.GetType("System.String"))
-        dtTemplate.Columns.Add("L", Type.GetType("System.Double")) '挡墙分段长度
-        dtTemplate.Columns.Add("pd", Type.GetType("System.Double")) '挡墙纵坡坡度
+        'dtTemplate.Columns.Add("group", GetType(Double)) '分组
+        'dtTemplate.Columns.Add("max_y1_group", GetType(Double)) '分组
+        'dtTemplate.Columns.Add("min_y1_group", GetType(Double)) '分组
+        ''dtTemplate.Columns.Add("group", GetType(Double)) '分组
+        'dtTemplate.Columns.Add("‌memo", GetType(String))
+        'dtTemplate.Columns.Add("L", GetType(Double)) '挡墙分段长度
+        'dtTemplate.Columns.Add("pd", GetType(Double)) '挡墙纵坡坡度
 
 
-        dtTemplate.Columns（"y1"）.Caption = "地形底高程y1"
-        dtTemplate.Columns（"y2"）.Caption = "地形顶高程y2"
-        dtTemplate.Columns（"h"）.Caption = "地形高差h"
-        dtTemplate.Columns（"dq_‌foundation_height"）.Caption = "挡墙基础埋深"
-        dtTemplate.Columns（"pfx_dq_‌foundation_height"）.Caption = "剖分线挡墙基础埋深"
-        dtTemplate.Columns（"dqdh"）.Caption = "挡墙高度dqdh最终值"
-        dtTemplate.Columns（"L"）.Caption = "挡墙长度L"
-        dtTemplate.Columns（"dqdy1"）.Caption = "挡墙设计底高程dqdy1"
-        dtTemplate.Columns（"dqdy2"）.Caption = "挡墙设计顶高程dqdy2"
-        dtTemplate.Columns（"min_pfxdqdy1_group"）.Caption = "分组内剖分线最低值min_pfxdqdy1_group"
-        'dtTemplate.Columns（"dqdh_pre"）.Caption = "挡墙高度计算值dqdh_pre"
-        dtTemplate.Columns（"pfx_h_plus_f"）.Caption = "高差+基础埋深"
-        dtTemplate.Columns（"h_plus_f"）.Caption = "高差+基础埋深"
-        dtTemplate.Columns（"group"）.Caption = "挡墙分组group"
-        dtTemplate.Columns（"pd"）.Caption = "挡墙基底纵坡"
-        dtTemplate.Columns（"memo"）.Caption = "备注"
-        'dtTemplate.Columns（"pfxdqdh"）.Caption = "挡墙高度dqdh"
-        'dtTemplate.Columns.Add("name", Type.GetType("System.String"))
+        'dtTemplate.Columns（"y1"）.Caption = "地形底高程y1"
+        'dtTemplate.Columns（"y2"）.Caption = "地形顶高程y2"
+        'dtTemplate.Columns（"h"）.Caption = "地形高差h"
+        'dtTemplate.Columns（"dq_‌foundation_height"）.Caption = "挡墙基础埋深"
+        'dtTemplate.Columns（"pfx_dq_‌foundation_height"）.Caption = "剖分线挡墙基础埋深"
+        'dtTemplate.Columns（"dqdh"）.Caption = "挡墙高度dqdh最终值"
+        'dtTemplate.Columns（"L"）.Caption = "挡墙长度L"
+        'dtTemplate.Columns（"dqdy1"）.Caption = "挡墙设计底高程dqdy1"
+        'dtTemplate.Columns（"dqdy2"）.Caption = "挡墙设计顶高程dqdy2"
+        'dtTemplate.Columns（"min_pfxdqdy1_group"）.Caption = "分组内剖分线最低值min_pfxdqdy1_group"
+        ''dtTemplate.Columns（"dqdh_pre"）.Caption = "挡墙高度计算值dqdh_pre"
+        'dtTemplate.Columns（"pfx_h_plus_f"）.Caption = "高差+基础埋深"
+        'dtTemplate.Columns（"h_plus_f"）.Caption = "高差+基础埋深"
+        'dtTemplate.Columns（"group"）.Caption = "挡墙分组group"
+        'dtTemplate.Columns（"pd"）.Caption = "挡墙基底纵坡"
+        'dtTemplate.Columns（"memo"）.Caption = "备注"
+        ''dtTemplate.Columns（"pfxdqdh"）.Caption = "挡墙高度dqdh"
+        ''dtTemplate.Columns.Add("name", GetType(String))
 
-        Dim datatable_T = New DataTable '顶线
-        datatable_T.Columns.Add("ID", Type.GetType("System.String"))
-        datatable_T.Columns.Add("x", Type.GetType("System.Double"))
-        datatable_T.Columns.Add("y", Type.GetType("System.Double")) '顶
-
-        Dim datatable_B = New DataTable '底线
-        datatable_B.Columns.Add("ID", Type.GetType("System.String"))
-        datatable_B.Columns.Add("x", Type.GetType("System.Double"))
-        datatable_B.Columns.Add("y", Type.GetType("System.Double")) '顶
+        'Dim datatable_T = New DataTable '顶线
+        'datatable_T.Columns.Add("ID", GetType(String))
+        'datatable_T.Columns.Add("x", GetType(Double))
+        'datatable_T.Columns.Add("y", GetType(Double)) '顶
+        Dim datatable_T As DataTable = Ini_datatable_T()
+        Dim datatable_B As DataTable = Ini_datatable_B()
+        'Dim datatable_B = New DataTable '底线
+        'datatable_B.Columns.Add("ID", GetType(String))
+        'datatable_B.Columns.Add("x", GetType(Double))
+        'datatable_B.Columns.Add("y", GetType(Double)) '顶
 
         Dim OpenFileDialog1 As New OpenFileDialog
         OpenFileDialog1.Filter = "Excel files (*.xls;*.xlsx)|*.xls;*.xlsx"
@@ -82,6 +83,7 @@ Public Class Form2
 
                 Dim c = New Class_read_excel
                 'dtTemplate = c.DoReadExcelDataTable(str_filename_path_temp, 0, dtTemplate).Copy
+                'MessageBox.Show(str_filename_path_temp)
                 datatable_T = c.DoReadExcelDataTable(str_filename_path_temp, 0, datatable_T).Copy
                 datatable_B = c.DoReadExcelDataTable(str_filename_path_temp, 1, datatable_B).Copy
 
@@ -97,13 +99,13 @@ Public Class Form2
 
 
                 '按步长 step_cal插入剖分线，插入时不能距离已有线太近，阈值为  min_threshold
-                Dim minx As Double = datatable_T.Rows(0)("x")
-                Dim maxx As Double = datatable_T.Rows(datatable_T.Rows.Count - 1)("x")
-                Dim x_current As Double = minx
+                Dim minx As Decimal = datatable_T.Rows(0)("x")
+                Dim maxx As Decimal = datatable_T.Rows(datatable_T.Rows.Count - 1)("x")
+                Dim x_current = minx
                 Do While x_current < maxx
                     'MessageBox.Show(x_current & "ppp")
                     If x_current > minx Then '第一个点的信息上一步已经录入了
-                        Dim boolean_effective As Boolean = True
+                        Dim boolean_effective = True
                         ' 检查当前 x_current 是否与已有的控制点太近
                         For i = 1 To datatable_T.Rows.Count - 1
                             If Math.Abs(x_current - datatable_T.Rows(i)("x")) < min_threshold Then
@@ -128,19 +130,19 @@ Public Class Form2
 
                 '排序，按x列升序排列
                 '' 创建 DataView（或直接使用 DefaultView）
-                Dim dv As DataView = dtTemplate.DefaultView
+                Dim dv = dtTemplate.DefaultView
                 ' 按 "ColumnName" 列升序排序
                 dv.Sort = "x ASC"
 
                 ' dv.Sort = "ColumnName DESC"' 或降序
                 ' 如果需要获取排序后的 DataTable（新表）
-                dtTemplate = dv.ToTable()
+                dtTemplate = dv.ToTable
 
                 'ID重新排序赋值
-                Dim n_temp As Integer = 0
+                Dim n_temp = 0
 
                 For j = 0 To dtTemplate.Rows.Count - 1
-                    If dtTemplate.Rows(j)("ID").ToString().Trim().Contains("*") = False Then '标记坡顶线的转折处
+                    If dtTemplate.Rows(j)("ID").ToString.Trim.Contains("*") = False Then '标记坡顶线的转折处
                         dtTemplate.Rows(j)("ID") = n_temp
                     Else
                         dtTemplate.Rows(j)("ID") = n_temp & "*"
@@ -161,7 +163,7 @@ Public Class Form2
 
 
                     'Dim h_temp As Double = Math.Ceiling(dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("dq_‌foundation_height"))
-                    Dim h_temp As Double = GetFirstCeilingKey(dtTemplate.Rows(m)("h"))
+                    Dim h_temp As Decimal = GetFirstCeilingKey(dtTemplate.Rows(m)("h"))
 
 
                     If h_temp < min_dq_height Then h_temp = min_dq_height '限制最小挡墙高度2m
@@ -169,7 +171,7 @@ Public Class Form2
                     dtTemplate.Rows(m)("pfxdqdh") = h_temp '该条分线处挡墙的高度的最小值，(地形高差+基础深度)，将来挡墙高不能比这个小
                     dtTemplate.Rows(m)("pfxdqdy1") = dtTemplate.Rows(m)("y2") - h_temp
                     dtTemplate.Rows(m)("pfxdqdy2") = dtTemplate.Rows(m)("y2")
-                    dtTemplate.Rows(m)("pfx_dq_‌foundation_height") = dq_Map(h_temp).foundation_height
+                    dtTemplate.Rows(m)("pfx_dq_‌foundation_height") = dq_Map(Math.Round(h_temp, 1)).foundation_height
                     dtTemplate.Rows(m)("pfx_h_plus_f") = dtTemplate.Rows(m)("pfx_dq_‌foundation_height") + dtTemplate.Rows(m)("h")
                     'dtTemplate.Rows(m)("h_plus_f") = dtTemplate.Rows(m)("h") + dtTemplate.Rows(m)("pfx_dq_‌foundation_height")
                     If m <> dtTemplate.Rows.Count - 1 Then
@@ -189,27 +191,28 @@ Public Class Form2
 
                 '根据上一步的分组结果，合并分组，（其实就是新建datatable，并取各剖分线第一组）并更新相关数据
                 'Dim dt = dtTemplate.Clone
-                Dim dt As DataTable = New DataTable
-                dt.Columns.Add("group", Type.GetType("System.Double")) '分组
-                dt.Columns.Add("dqdh", Type.GetType("System.Double")) '分组
-                dt.Columns.Add("L", Type.GetType("System.Double")) '分组
-                dt.Columns.Add("x", Type.GetType("System.Double"))
-                dt.Columns.Add("y1", Type.GetType("System.Double"))
-                dt.Columns.Add("dqdy1", Type.GetType("System.Double"))
-                dt.Columns.Add("dqdy2", Type.GetType("System.Double"))
-                dt.Columns.Add("pd", Type.GetType("System.Double"))
-                dt.Columns.Add("dq_‌foundation_height", Type.GetType("System.Double")) '基础埋深
-                dt.Columns.Add("memo", Type.GetType("System.String"))
-                dt.Columns.Add("memo2", Type.GetType("System.String"))
-                'dt.Columns（"dqdh"）.Caption = "挡墙高度dqdh"
-                'dt.Columns（"L"）.Caption = "挡墙长度L"
+                Dim dt As DataTable = Ini_dt()
+                'dt.Columns.Add("group", GetType(Double)) '分组
+                'dt.Columns.Add("dqdh", GetType(Double)) '分组
+                'dt.Columns.Add("L", GetType(Double)) '分组
+                'dt.Columns.Add("x", GetType(Double))
+                'dt.Columns.Add("y1", GetType(Double))
+                'dt.Columns.Add("dqdy1", GetType(Double))
+                'dt.Columns.Add("dqdy2", GetType(Double))
+                'dt.Columns.Add("pd", GetType(Double))
+                'dt.Columns.Add("dq_‌foundation_height", GetType(Double)) '基础埋深
+                'dt.Columns.Add("memo", GetType(String))
+                'dt.Columns.Add("memo2", GetType(String))
+                ''dt.Columns（"dqdh"）.Caption = "挡墙高度dqdh"
+                ''dt.Columns（"L"）.Caption = "挡墙长度L"
 
-                'dt.Columns（"dqdy1"）.Caption = "挡墙设计底高程dqdy1"
-                'dt.Columns（"dqdy2"）.Caption = "挡墙设计顶高程dqdy2"
-                'dt.Columns（"pd"）.Caption = "挡墙基底纵坡"
-                'dt.Columns（"memo"）.Caption = "备注"
+                ''dt.Columns（"dqdy1"）.Caption = "挡墙设计底高程dqdy1"
+                ''dt.Columns（"dqdy2"）.Caption = "挡墙设计顶高程dqdy2"
+                ''dt.Columns（"pd"）.Caption = "挡墙基底纵坡"
+                ''dt.Columns（"memo"）.Caption = "备注"
 
-                Dim current_group As Double = 0
+                '###初始化dt数据
+                Dim current_group As Decimal = 0
                 For x = 0 To dtTemplate.Rows.Count - 1
                     If x = 0 Then
 
@@ -286,10 +289,10 @@ Public Class Form2
 
                 '前推算法 
                 For j = 1 To dt.Rows.Count - 1
-                    If （dt.Rows(j - 1)("dqdy1") + dt.Rows(j - 1)("dq_‌foundation_height")） > dt.Rows(j)("y1") Then
+                    If dt.Rows(j - 1)("dqdy1") + dt.Rows(j - 1)("dq_‌foundation_height") > dt.Rows(j)("y1") Then
                         '基础顶在地形底以下，前推
                         If dt.Rows(j)("dqdy2") = dt.Rows(j - 1)("dqdy2") Then
-                            Dim row_id As Integer = GetRowIndexByX_Binary(dtTemplate, dt.Rows(j)("x")) - 1
+                            Dim row_id = GetRowIndexByX_Binary(dtTemplate, dt.Rows(j)("x")) - 1
                             dt.Rows(j)("x") = dtTemplate.Rows(row_id)("x")
                             'dt.Rows(j)("x") = dt.Rows(j - 1)("x")
                             dt.Rows(j)("memo2") = "起点前推"
@@ -370,22 +373,24 @@ Public Class Form2
                 'Next
 
                 '第四步：再次更新整理dt的L(挡墙长度)和纵坡
-                For t = 0 To dt.Rows.Count - 2
-                    dt.Rows(t)("L") = dt.Rows(t + 1)("x") - dt.Rows(t)("x")
-                    Dim y1_next As Double = dt.Rows(t + 1)("y1")
-                    Dim y1 As Double = dt.Rows(t)("y1")
-                    dt.Rows(t)("pd") = (y1_next - y1) / (dt.Rows(t + 1)("x") - dt.Rows(t)("x"))
-                    If Math.Abs（dt.Rows(t)("pd")） > 0.05 Then
-                        dt.Rows(t)("memo") = "陡纵坡"
-                    End If
-                    'dt.Rows(t)("name") = t & "#"
-                Next
-                '单独整理最后一段挡墙的数据
-                dt.Rows(dt.Rows.Count - 1)("L") = dtTemplate.Rows(dtTemplate.Rows.Count - 1)("x") - dt.Rows(dt.Rows.Count - 1)("x")
-                dt.Rows(dt.Rows.Count - 1)("pd") = (dtTemplate.Rows(dtTemplate.Rows.Count - 1)("y1") - dt.Rows(dt.Rows.Count - 1)("y1")) / dt.Rows(dt.Rows.Count - 1)("L")
-                If Math.Abs（dt.Rows(dt.Rows.Count - 1)("pd")） > 0.05 Then
-                    dt.Rows(dt.Rows.Count - 1)("memo") = "陡纵坡"
-                End If
+                dt = organize_data_pd_L（dt, dtTemplate）
+                'For t = 0 To dt.Rows.Count - 2
+                '    dt.Rows(t)("L") = dt.Rows(t + 1)("x") - dt.Rows(t)("x")
+                '    Dim y1_next As Double = dt.Rows(t + 1)("y1")
+                '    Dim y1 As Double = dt.Rows(t)("y1")
+                '    dt.Rows(t)("pd") = (y1_next - y1) / (dt.Rows(t + 1)("x") - dt.Rows(t)("x"))
+                '    If Math.Abs（dt.Rows(t)("pd")） > 0.05 Then
+                '        dt.Rows(t)("memo") = "陡纵坡"
+                '    End If
+                '    'dt.Rows(t)("name") = t & "#"
+                'Next
+                ''单独整理最后一段挡墙的数据
+                'dt.Rows(dt.Rows.Count - 1)("L") = dtTemplate.Rows(dtTemplate.Rows.Count - 1)("x") - dt.Rows(dt.Rows.Count - 1)("x")
+                'dt.Rows(dt.Rows.Count - 1)("pd") = (dtTemplate.Rows(dtTemplate.Rows.Count - 1)("y1") - dt.Rows(dt.Rows.Count - 1)("y1")) / dt.Rows(dt.Rows.Count - 1)("L")
+
+                'If Math.Abs（dt.Rows(dt.Rows.Count - 1)("pd")） > 0.05 Then
+                '    dt.Rows(dt.Rows.Count - 1)("memo") = "陡纵坡"
+                'End If
 
                 Createdqdxf4（str_filename_temp, dt, datatable_B, datatable_T, dtTemplate）
                 'Createdqdxf5（str_filename_temp, dtTemplate, datatable_B, datatable_T）
@@ -400,9 +405,10 @@ Public Class Form2
                     If Not Directory.Exists(reportFolder) Then Directory.CreateDirectory(reportFolder)
 
                     str_filename_temp = str_filename_temp & $"_{Date.Now:yyyyMMdd_HH_mm_ss}.xlsx"
-                    Dim fullPath As String = Path.Combine(reportFolder, str_filename_temp)
+                    Dim fullPath = Path.Combine(reportFolder, str_filename_temp)
 
-                    Dim dt_sum = GroupSumTwoCol(dtTemplate, "dqdh", "L"）
+                    'Dim dt_sum = GroupSumTwoCol(dtTemplate, "dqdh", "L"）
+                    Dim dt_sum = GroupSumTwoCol(dt, "dqdh", "L"）
                     Dim dataset_sheet = New DataSet
                     'dataset_sheet.Tables.Add(dtTemplate)
                     dataset_sheet.Tables.Add(dt) '挡墙工程量统计
@@ -418,7 +424,7 @@ Public Class Form2
                     arr.Add("挡墙长度分组求和")
 
                     ' 调用导出并检查返回值
-                    Dim ok As Boolean = Export_hp_dataset_to_excel(dataset_sheet, fullPath, arr)
+                    Dim ok = Export_hp_dataset_to_excel(dataset_sheet, fullPath, arr)
                     If Not ok Then
                         ' 导出函数会显示具体异常，额外也弹个提示并退出
                         MessageBox.Show($"导出失败，请检查错误信息。目标路径：{fullPath}", "导出失败", MessageBoxButtons.OK, MessageBoxIcon.Warning)
@@ -429,7 +435,7 @@ Public Class Form2
                     Try
                         Process.Start(New ProcessStartInfo(fullPath) With {.UseShellExecute = True})
                     Catch ex As Exception
-                        MessageBox.Show($"导出成功，但打开文件失败: {ex.GetType().Name}: {ex.Message}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        MessageBox.Show($"导出成功，但打开文件失败: {ex.GetType.Name}: {ex.Message}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information)
                     End Try
                 End If
             End If
@@ -533,4 +539,87 @@ Public Class Form2
         End If
         Return v
     End Function
+
+    Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
+
+        Dim OpenFileDialog1 As New OpenFileDialog
+        OpenFileDialog1.Filter = "Excel files (*.xls;*.xlsx)|*.xls;*.xlsx"
+        'OpenFileDialog1.Filter = "CSV files (*.csv)|*.csv"
+        OpenFileDialog1.FilterIndex = 1
+        If OpenFileDialog1.ShowDialog = DialogResult.OK Then
+
+            'Dim str_filename_temp As String = Path.GetFileNameWithoutExtension(OpenFileDialog1.FileName)
+            Dim str_filename_path_temp = OpenFileDialog1.FileName
+            Dim str_filename_temp = Path.GetFileNameWithoutExtension(str_filename_path_temp)
+            If ExcelHelper.IsFileLocked(str_filename_temp) = False Then
+                'dtTemplate = ReadCsvToDataTable（str_filename_temp, False）
+                Dim dt As DataTable = ini_dt()
+                Dim dtTemplate As DataTable = ini_dtTemplate()
+                Dim datatable_T As DataTable = Ini_datatable_T()
+                Dim datatable_B As DataTable = Ini_datatable_B()
+                Dim c = New Class_read_excel
+
+                dt = c.DoReadExcelDataTable(str_filename_path_temp, 0, dt).Copy
+                dtTemplate = c.DoReadExcelDataTable(str_filename_path_temp, 1, dtTemplate).Copy
+                datatable_T = c.DoReadExcelDataTable(str_filename_path_temp, 2, datatable_T).Copy
+                datatable_B = c.DoReadExcelDataTable(str_filename_path_temp, 3, datatable_B).Copy
+                For i = 0 To dt.Rows.Count - 1
+                    dt.Rows(i)("dqdy1") = dt.Rows(i)("dqdy2") - dt.Rows(i)("dqdh") '用户只用修改挡墙高程，其底座标自动修改
+                Next
+                dt = MergeAdjacentEqualGroups(dt) '相邻组相同时，合并挡墙分组
+                '第四步：再次更新整理dt的L(挡墙长度)和纵坡
+                dt = organize_data_pd_L（dt, dtTemplate）
+                Dim dt_sum = GroupSumTwoCol(dt, "dqdh", "L"）
+                Dim reportFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "report")
+                If Not Directory.Exists(reportFolder) Then Directory.CreateDirectory(reportFolder)
+
+                Dim str_dwf_filename = str_filename_temp & $"_人工修改{Date.Now:yyyyMMdd_HH_mm_ss}.dwf"
+                Dim fullPath_dwf = Path.Combine(reportFolder, str_dwf_filename)
+                Createdqdxf4（fullPath_dwf, dt, datatable_B, datatable_T, dtTemplate）
+                'MessageBox.Show(fullPath_dwf)
+                Dim str_xlsx_filename = str_filename_temp & $"_人工修改{Date.Now:yyyyMMdd_HH_mm_ss}.xlsx"
+
+
+
+                Dim fullPath_xlsx = Path.Combine(reportFolder, str_xlsx_filename)
+                'MessageBox.Show(fullPath_xlsx)
+                Call_save_xlsx(fullPath_xlsx, dt， dtTemplate, datatable_T, datatable_B, dt_sum)
+
+            End If
+        End If
+    End Sub
+
+
+    Public Sub Call_save_xlsx(ByVal fullPath As String， ByVal dt As DataTable， ByVal dtTemplate As DataTable， ByVal datatable_T As DataTable， ByVal datatable_B As DataTable， ByVal dt_sum As DataTable)
+        Dim dataset_sheet = New DataSet
+        'dataset_sheet.Tables.Add(dtTemplate)
+        dataset_sheet.Tables.Add(dt) '挡墙工程量统计
+        dataset_sheet.Tables.Add(dtTemplate) '挡墙绘图中间基础数据
+        dataset_sheet.Tables.Add(datatable_T) '挡墙顶部设计线数据
+        dataset_sheet.Tables.Add(datatable_B) '挡墙底部设计线数据
+        dataset_sheet.Tables.Add(dt_sum) '挡墙分段汇总数据
+        Dim arr = New ArrayList
+        arr.Add("挡墙工程量统计")
+        arr.Add("挡墙设计中间数据")
+        arr.Add("挡墙顶部地形线")
+        arr.Add("挡墙底部地形线")
+        arr.Add("挡墙长度分组求和")
+
+        ' 调用导出并检查返回值
+        Dim ok = Export_hp_dataset_to_excel(dataset_sheet, fullPath, arr)
+        If Not ok Then
+            ' 导出函数会显示具体异常，额外也弹个提示并退出
+            MessageBox.Show($"导出失败，请检查错误信息。目标路径：{fullPath}", "导出失败", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Exit Sub
+        End If
+
+        ' 尝试打开刚保存的完整路径文件
+        Try
+            Process.Start(New ProcessStartInfo(fullPath) With {.UseShellExecute = True})
+        Catch ex As Exception
+            MessageBox.Show($"导出成功，但打开文件失败: {ex.GetType.Name}: {ex.Message}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        End Try
+    End Sub
+
+
 End Class
