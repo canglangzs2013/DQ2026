@@ -182,7 +182,7 @@ Partial Class Form2
         ' Button3
         ' 
         Button3.Font = New Font("Microsoft YaHei UI", 12F, FontStyle.Regular, GraphicsUnit.Point, CByte(134))
-        Button3.Image = My.Resources.Resources.Justicon_Free_Simple_Line_Folder_Check_File_Folder_File_Document_Document_Check_48
+        Button3.Image = CType(resources.GetObject("Button3.Image"), Image)
         Button3.Location = New Point(17, 423)
         Button3.Margin = New Padding(3, 2, 3, 2)
         Button3.Name = "Button3"
@@ -196,7 +196,7 @@ Partial Class Form2
         ' 
         AutoScaleDimensions = New SizeF(9F, 20F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(617, 567)
+        ClientSize = New Size(617, 498)
         Controls.Add(Button3)
         Controls.Add(txt_min_segment_length)
         Controls.Add(Label1)
