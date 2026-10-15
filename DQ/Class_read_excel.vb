@@ -99,7 +99,8 @@ Public Class Class_read_excel
                 Case CellType.String
                     Return cell.StringCellValue
                 Case CellType.Numeric
-                    Return If(DateUtil.IsCellDateFormatted(cell), CObj(cell.DateCellValue), CObj(cell.NumericCellValue))
+                    ' 将 NPOI 返回的 double 转为 Decimal 并四舍五入到6 位小数，避免二进制浮点尾数
+                    Return If(DateUtil.IsCellDateFormatted(cell), CObj(cell.DateCellValue), Decimal.Round(Convert.ToDecimal(cell.NumericCellValue), 6))
                 Case CellType.Boolean
                     Return cell.BooleanCellValue
                 Case Else
@@ -113,7 +114,8 @@ Public Class Class_read_excel
             Case CellType.String
                 Return cell.StringCellValue
             Case CellType.Numeric
-                Return If(DateUtil.IsCellDateFormatted(cell), CObj(cell.DateCellValue), CObj(cell.NumericCellValue))
+                ' 将 NPOI 返回的 double 转为 Decimal 并四舍五入到6 位小数，避免二进制浮点尾数
+                Return If(DateUtil.IsCellDateFormatted(cell), CObj(cell.DateCellValue), Decimal.Round(Convert.ToDecimal(cell.NumericCellValue), 6))
             Case CellType.Boolean
                 Return cell.BooleanCellValue
             Case Else
